@@ -1,0 +1,192 @@
+{
+  "version": 1,
+  "pages": {
+    "code-template": {
+      "images": {
+        "og": {
+          "url": "/og/code-template-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "The code template"
+    },
+    "configuration": {
+      "images": {
+        "og": {
+          "url": "/og/configuration-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Configuration"
+    },
+    "configuration/extra-images": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/extra-images-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "One-off images"
+    },
+    "configuration/fonts": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/fonts-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Fonts"
+    },
+    "configuration/frontmatter": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/frontmatter-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Frontmatter"
+    },
+    "configuration/manifest": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/manifest-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Manifest"
+    },
+    "configuration/meta-tags": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/meta-tags-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Social meta tags"
+    },
+    "configuration/per-size-config": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/per-size-config-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Per-size config"
+    },
+    "configuration/placement": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/placement-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Placement"
+    },
+    "configuration/sizes": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/sizes-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Output sizes and filenames"
+    },
+    "configuration/warnings": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/warnings-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Warnings"
+    },
+    "getting-started": {
+      "images": {
+        "og": {
+          "url": "/og/getting-started-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Getting started"
+    },
+    "index": {
+      "images": {
+        "og": {
+          "url": "/og/index-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Colophon"
+    },
+    "programmatic-use": {
+      "images": {
+        "og": {
+          "url": "/og/programmatic-use-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Programmatic use"
+    },
+    "rebuilds": {
+      "images": {
+        "og": {
+          "url": "/og/rebuilds-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Rebuilds"
+    },
+    "templates": {
+      "images": {
+        "og": {
+          "url": "/og/templates-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Templates"
+    },
+    "upgrading": {
+      "images": {
+        "og": {
+          "url": "/og/upgrading-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Upgrading from 1.x"
+    }
+  }
+}

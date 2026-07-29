@@ -1,0 +1,33 @@
+{
+  "name": "colophonjs.dev",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "icon": "tsx scripts/icon.mts",
+    "scaffold-docs": "tsx scripts/scaffold-docs.mts && prettier --write astro.config.mjs && pnpm meta-img",
+    "meta-img": "colophon src/content/docs --config colophon.config.ts",
+    "prebuild": "pnpm meta-img",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "fmt": "prettier --write ."
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.41.4",
+    "astro": "^7.0.9",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@kensio/colophon": "^2.3.0",
+    "@kensio/yulin": "^0.41.0",
+    "aws-cdk": "^2.1132.1",
+    "aws-cdk-lib": "^2.261.0",
+    "constructs": "^10.7.0",
+    "prettier": "^3.9.5",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.1",
+    "typescript": "^6.0.3"
+  }
+}

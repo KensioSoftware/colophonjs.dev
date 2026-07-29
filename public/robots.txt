@@ -1,0 +1,11 @@
+# https://colophonjs.dev/robots.txt
+
+User-agent: *
+Allow: /
+
+# Pagefind's search index. The browser fetches it with JavaScript, so blocking
+# it here costs the site nothing and keeps a few hundred JSON fragments of
+# chopped-up page text out of the index.
+Disallow: /pagefind/
+
+Sitemap: https://colophonjs.dev/sitemap-index.xml

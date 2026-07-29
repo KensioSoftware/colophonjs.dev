@@ -1,0 +1,51 @@
+<!--
+  The Colophon mark.
+
+  A C monogram drawn as an open ring, with a small square stamped into its
+  opening. The ring is the letter and the square is the mark being placed, which
+  is what a printer's colophon is. Two shapes, so it still reads at favicon size
+  where anything finer turns to mush.
+
+  The card behind it is the indigo and pink used for the sample images in the
+  package README, on the same diagonal the generated cards use. Everything
+  outside the rounded square stays transparent, so the mark sits on either theme.
+
+  This is the master. scripts/icon.mts rasterises it, so edit this and run
+  `pnpm icon` rather than touching the PNGs.
+-->
+<svg
+  width="1024"
+  height="1024"
+  viewBox="0 0 1024 1024"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <linearGradient
+      id="brand"
+      x1="64"
+      y1="64"
+      x2="960"
+      y2="960"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop offset="0" stop-color="#3730a3" />
+      <stop offset="0.55" stop-color="#4f46e5" />
+      <stop offset="1" stop-color="#db2777" />
+    </linearGradient>
+  </defs>
+
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#brand)" />
+
+  <!-- The C: a 260 degree arc, open towards the right. -->
+  <path
+    d="M 647 673 A 210 210 0 1 1 647 351"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="108"
+    stroke-linecap="round"
+  />
+
+  <!-- The mark, sitting in the opening on the ring's own radius. -->
+  <rect x="667" y="457" width="110" height="110" rx="34" fill="#ffffff" />
+</svg>
