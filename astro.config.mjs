@@ -50,9 +50,10 @@ export default defineConfig({
             // guide-sidebar:start
             { label: "Templates", slug: "templates" },
             { label: "The code template", slug: "code-template" },
+            { label: "The layout toolkit", slug: "layout" },
             { label: "Rebuilds", slug: "rebuilds" },
             { label: "Programmatic use", slug: "programmatic-use" },
-            { label: "Upgrading from 1.x", slug: "upgrading" },
+            { label: "Upgrading", slug: "upgrading" },
             // guide-sidebar:end
           ],
         },
@@ -63,6 +64,14 @@ export default defineConfig({
             { label: "Overview", slug: "configuration" },
             { label: "Frontmatter", slug: "configuration/frontmatter" },
             { label: "Fonts", slug: "configuration/fonts" },
+            {
+              label: "Themes and background treatments",
+              slug: "configuration/themes",
+            },
+            {
+              label: "Logos, avatars and photographs",
+              slug: "configuration/images",
+            },
             {
               label: "Output sizes and filenames",
               slug: "configuration/sizes",

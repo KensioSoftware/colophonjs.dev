@@ -56,6 +56,17 @@
       "widest": "og",
       "alt": "Frontmatter"
     },
+    "configuration/images": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/images-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Logos, avatars and photographs"
+    },
     "configuration/manifest": {
       "images": {
         "og": {
@@ -111,6 +122,17 @@
       "widest": "og",
       "alt": "Output sizes and filenames"
     },
+    "configuration/themes": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/themes-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Themes and background treatments"
+    },
     "configuration/warnings": {
       "images": {
         "og": {
@@ -143,6 +165,17 @@
       },
       "widest": "og",
       "alt": "Colophon"
+    },
+    "layout": {
+      "images": {
+        "og": {
+          "url": "/og/layout-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "The layout toolkit"
     },
     "programmatic-use": {
       "images": {
@@ -186,7 +219,7 @@
         }
       },
       "widest": "og",
-      "alt": "Upgrading from 1.x"
+      "alt": "Upgrading"
     }
   }
 }

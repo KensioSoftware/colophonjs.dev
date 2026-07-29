@@ -33,13 +33,15 @@ yourself.
 
 | Option        | Default                                       | Notes                                                             |
 | ------------- | --------------------------------------------- | ----------------------------------------------------------------- |
+| `theme`       | none                                          | A named look. See [Themes](./themes/).                            |
 | `colors`      | neutral indigo/pink                           | `brand`, `brandDark`, `brandWarm`, `foreground`.                  |
-| `background`  | gradient derived from `colors`                | Or a `{ type: "solid" }` or custom gradient.                      |
+| `background`  | gradient derived from `colors`                | Or a solid colour, a mesh, a gradient or a photo.                 |
+| `texture`     | none                                          | Grain, dots or ruled lines. See [Themes](./themes/).              |
 | `fonts`       | none                                          | Font files to render with. See [Fonts](./fonts/).                 |
 | `systemFonts` | `true` until `fonts` is set                   | Whether installed fonts are loaded too.                           |
 | `fontFamily`  | first font, else `Arial, ...`                 | Font stack for template text.                                     |
 | `footer`      | none                                          | Footer text. Omit the field for none.                             |
-| `badge`       | none                                          | Corner badge for `banner`. Omit the field for none.               |
+| `badge`       | none                                          | Corner badge for `banner`, which a post may override or turn off. |
 | `code`        | `github-dark`, monospace stack                | Styling for [the code template](../code-template/).               |
 | `onWarning`   | `console.warn`                                | Where compromises are reported. See [Warnings](./warnings/).      |
 | `sizes`       | `og` and `square`                             | Named output sizes. See [Output sizes](./sizes/).                 |
@@ -100,6 +102,15 @@ Unknown option "dimensions". Did you mean "sizes"?
 Where there is an obvious near miss it is named, including options that have
 been renamed between versions. Where there is not, the message lists what is
 valid at that point in the config.
+
+An option that has been removed says so, and says what happened instead, since
+there is no name to point at:
+
+```text
+Option "code.charWidthRatio" has been removed: character width is measured from
+the font now. Supply the monospace face under `fonts` to have it measured
+exactly.
+```
 
 Nested objects are checked too, and named by their path: `code.tabsize`,
 `sizes[1].heigth`, `background.stops[0].ofset`. Everything wrong with a config

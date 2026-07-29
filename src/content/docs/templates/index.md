@@ -39,33 +39,92 @@ are, because a name typed into frontmatter is easy to get wrong:
 Unknown template "bannner". Available templates: banner, card, code.
 ```
 
+## The badge on a banner
+
+A `badge` in config is the same corner badge on every `banner` image a site
+renders, which suits a site whose posts are all of a kind. A post can say
+otherwise:
+
+```yaml
+---
+meta_img_props:
+  template: banner
+  title: Keep test state inside each test case
+  badge: false
+---
+```
+
+`false` draws no badge on that image, and the title takes back the room that was
+being reserved above it. An object replaces the configured badge instead, so a
+post can carry one the config knows nothing about:
+
+```yaml
+---
+meta_img_props:
+  template: banner
+  title: Simulating S3 in a test suite
+  badge:
+    text: video
+    background: "#111827"
+    color: "#f9fafb"
+---
+```
+
+Only `text` is required, and the colours default to white on the brand colour as
+they do in config. A post's badge wins over a
+[per-size](../configuration/per-size-config/) one as well, since it describes
+the post rather than the shape of the image.
+
+A `badge` that is neither an object with text nor `false` is
+[reported](../configuration/warnings/) and the configured badge is drawn, which
+leaves the post with the image it would have had if it had said nothing.
+
 ## Writing your own
 
 Pass `templates` in config. The keys are the names frontmatter uses, and what
 you supply is merged over the built-ins, so a key of `banner` replaces the
 built-in `banner`.
 
-A template's `render` receives the props, the resolved config and the pixel
-dimensions of the image being drawn. It returns the SVG _foreground_ content.
-The background and the enclosing `<svg>` root are added by the renderer, so a
-template does not draw them.
+A template's `render` receives the props, the resolved config, the pixel
+dimensions of the image being drawn, a `measure` for its text, and the `logo`
+and `avatar` for the image, already loaded. It returns
+the SVG _foreground_ content. The background and the enclosing `<svg>` root are
+added by the renderer, so a template does not draw them.
 
 ```ts
-import { defineConfig, escapeXml, type Template } from "@kensio/colophon";
+import { defineConfig, type Template } from "@kensio/colophon";
+import { box, drawLines, blockLines, inset } from "@kensio/colophon/layout";
 
 const stripe: Template = {
   name: "stripe",
-  render({ props, config, dimensions }) {
-    const { width, height } = dimensions;
+  render({ props, config, dimensions, measure }) {
+    const full = { x: 0, y: 0, ...dimensions };
+    const content = inset(full, Math.round(dimensions.width * 0.07));
 
-    return `
-      <rect x="0" y="${height - 32}" width="${width}" height="32"
-            fill="${config.colors.brandWarm}" />
-      <text x="80" y="${height / 2}"
-            font-family="${config.fontFamily}"
-            font-size="${width * 0.08}" font-weight="700"
-            fill="${config.colors.foreground}">${escapeXml(props.title ?? "")}</text>
-    `;
+    const lines = blockLines(props.title, measure, config.fontFamily, {
+      maxWidth: content.width,
+      maxLines: 2,
+      fontSize: Math.round(dimensions.height * 0.1),
+      floor: 0.65,
+      fontWeight: 700,
+      opacity: 1,
+    });
+
+    return (
+      box(
+        {
+          x: 0,
+          y: dimensions.height - 32,
+          width: dimensions.width,
+          height: 32,
+        },
+        { fill: config.colors.brandWarm },
+      ) +
+      drawLines(lines, content, {
+        fontFamily: config.fontFamily,
+        fill: config.colors.foreground,
+      })
+    );
   },
 };
 
@@ -75,18 +134,34 @@ export default defineConfig({
 });
 ```
 
+Those primitives are [the layout toolkit](../layout/), which is what the
+built-in templates are written on. Returning a string you built yourself works
+just as well, and `escapeXml` is exported for when you do.
+
 Some notes on writing one:
 
 - **Size everything from `dimensions`.** The same template is asked to draw a
   1200x1200 square and a 1200x630 landscape. Fractions of the width travel
   better than fixed pixel values, since that is what a feed scales the image to.
-- **Escape anything that came from frontmatter.** `escapeXml` is exported for
-  this. A title containing `&` produces invalid SVG otherwise.
+- **Escape anything that came from frontmatter.** The toolkit does it for you;
+  `escapeXml` is exported for the SVG you write by hand. A title containing `&`
+  produces an invalid document otherwise.
 - **`props` is open.** Colophon does not check what a template reads, so you can
   put whatever fields your layout needs into the props block.
+- **Images arrive loaded.** `logo` and `avatar` are `undefined` or an asset with
+  a `href` to hand to `image` and the `aspect` to size it by. Reading files is
+  the renderer's job, which is what keeps `render` a function over values. See
+  [Logos and photographs](../configuration/images/).
 - **`render` may return a promise** if it has to load something. Keep it
   synchronous when it does not need to. The built-in `code` template is async
   because it loads syntax grammars on demand.
+- **Measure text rather than guessing at it.** `measure(text, style)` gives the
+  width in pixels that a run of text will occupy, read from the font the build
+  is rendering with. Widths are exact where the family resolves to a font
+  supplied under [`fonts`](../configuration/fonts/) and estimated otherwise, so
+  a template never has to handle the two cases itself. `blockLines` and
+  `fitText` do the usual jobs of breaking a title across lines and shrinking one
+  that does not fit; see [the layout toolkit](../layout/).
 
 `config` here is the resolved config, with defaults applied and per-size
 overrides folded in, so `config.colors.brandWarm` is always a colour and

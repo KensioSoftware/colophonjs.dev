@@ -2,7 +2,7 @@
 
 > Colophon generates social meta images, the Open Graph and share-card images a platform shows when someone posts a link to a site. It reads image props from a post's frontmatter and renders branded PNGs at the sizes the site needs. It is an npm package, @kensio/colophon, usable as a CLI or from Node.
 
-Every page below is also available as one file: https://colophonjs.dev/llms-full.txt (about 51KB)
+Every page below is also available as one file: https://colophonjs.dev/llms-full.txt (about 76KB)
 
 ## Start here
 
@@ -12,22 +12,25 @@ Every page below is also available as one file: https://colophonjs.dev/llms-full
 
 - [Templates](https://colophonjs.dev/templates/): A template is a layout. Frontmatter picks one by name, so different posts on the same site can produce different kinds of image from the same config.
 - [The code template](https://colophonjs.dev/code-template/): The code template renders a syntax-highlighted snippet on a rounded panel over the background. The colours come from a real VS Code theme, by way of Shiki.
+- [The layout toolkit](https://colophonjs.dev/layout/): Writing a template means returning a string of SVG.
 - [Rebuilds](https://colophonjs.dev/rebuilds/): Every image Colophon writes carries a stamp: a hash of the props, the config and the output size it was rendered from, stored in the PNG itself as a tEXt chunk.
 - [Programmatic use](https://colophonjs.dev/programmatic-use/): The CLI is a thin wrapper over two entry points. Use them directly when a project needs to drive generation itself.
-- [Upgrading from 1.x](https://colophonjs.dev/upgrading/): Adding the code template made two small breaking changes.
+- [Upgrading](https://colophonjs.dev/upgrading/): Text is measured against the fonts a build actually renders with, instead of being estimated from a per-template fudge factor.
 
 ## Configuration
 
 - [Configuration](https://colophonjs.dev/configuration/): Colophon is configured with a module whose default export is a ColophonConfig.
 - [Frontmatter](https://colophonjs.dev/configuration/frontmatter/): By default Colophon reads a meta_img_props object from a post's frontmatter, takes the template name from a template field within it, and reads the post slug...
 - [Fonts](https://colophonjs.dev/configuration/fonts/): By default Colophon names font families and hopes the machine has them.
+- [Themes and background treatments](https://colophonjs.dev/configuration/themes/): A theme is a named look: a palette, a background and, for some of them, a texture over it. It is the shortest config there is.
+- [Logos, avatars and photographs](https://colophonjs.dev/configuration/images/): Three places an image can go into a generated one: a logo in the corner, an author's photo beside the footer, and a photograph behind everything.
 - [Output sizes and filenames](https://colophonjs.dev/configuration/sizes/): Each output size is a named { name, width, height }.
 - [Per-size config](https://colophonjs.dev/configuration/per-size-config/): Some settings only make sense per size. code.minFontScale is the clearest case: a 1:1 square and a 1.91:1 landscape have very different amounts of vertical...
 - [Placement](https://colophonjs.dev/configuration/placement/): An output path says where the bytes go and nothing about how anyone reaches them, so every site ends up rebuilding that mapping in its own templates, from...
 - [Manifest](https://colophonjs.dev/configuration/manifest/): Colophon writes PNGs and then goes quiet, so the site works out for itself what was generated, where it lives and how big it is.
 - [Social meta tags](https://colophonjs.dev/configuration/meta-tags/): Generating the image is half the job. The site still has to write the tags, and every site ends up with slightly different results.
 - [One-off images](https://colophonjs.dev/configuration/extra-images/): Not every image belongs to a post.
-- [Warnings](https://colophonjs.dev/configuration/warnings/): Some inputs cannot be honoured exactly. So far the only case is code too long to render legibly, described in the code template.
+- [Warnings](https://colophonjs.dev/configuration/warnings/): Some inputs cannot be honoured exactly.
 
 ## Optional
 

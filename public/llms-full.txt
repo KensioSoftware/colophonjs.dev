@@ -126,6 +126,15 @@ export default defineConfig({
 });
 ```
 
+Or pick a [theme](https://colophonjs.dev/configuration/themes/) and let it choose the colours:
+
+```ts
+export default defineConfig({
+  theme: "midnight",
+  footer: "example.com",
+});
+```
+
 Every option is listed in [Configuration](https://colophonjs.dev/configuration/).
 
 ## Run it over a content tree
@@ -209,32 +218,90 @@ are, because a name typed into frontmatter is easy to get wrong:
 Unknown template "bannner". Available templates: banner, card, code.
 ```
 
+## The badge on a banner
+
+A `badge` in config is the same corner badge on every `banner` image a site
+renders, which suits a site whose posts are all of a kind. A post can say
+otherwise:
+
+```yaml
+---
+meta_img_props:
+  template: banner
+  title: Keep test state inside each test case
+  badge: false
+---
+```
+
+`false` draws no badge on that image, and the title takes back the room that was
+being reserved above it. An object replaces the configured badge instead, so a
+post can carry one the config knows nothing about:
+
+```yaml
+---
+meta_img_props:
+  template: banner
+  title: Simulating S3 in a test suite
+  badge:
+    text: video
+    background: "#111827"
+    color: "#f9fafb"
+---
+```
+
+Only `text` is required, and the colours default to white on the brand colour as
+they do in config. A post's badge wins over a
+[per-size](https://colophonjs.dev/configuration/per-size-config/) one as well, since it describes
+the post rather than the shape of the image.
+
+A `badge` that is neither an object with text nor `false` is
+[reported](https://colophonjs.dev/configuration/warnings/) and the configured badge is drawn, which
+leaves the post with the image it would have had if it had said nothing.
+
 ## Writing your own
 
 Pass `templates` in config. The keys are the names frontmatter uses, and what
 you supply is merged over the built-ins, so a key of `banner` replaces the
 built-in `banner`.
 
-A template's `render` receives the props, the resolved config and the pixel
-dimensions of the image being drawn. It returns the SVG _foreground_ content.
-The background and the enclosing `<svg>` root are added by the renderer, so a
-template does not draw them.
+A template's `render` receives the props, the resolved config, the pixel
+dimensions of the image being drawn, a `measure` for its text, and the `logo`
+and `avatar` for the image, already loaded. It returns
+the SVG _foreground_ content. The background and the enclosing `<svg>` root are
+added by the renderer, so a template does not draw them.
 
 ```ts
 
 const stripe: Template = {
   name: "stripe",
-  render({ props, config, dimensions }) {
-    const { width, height } = dimensions;
+  render({ props, config, dimensions, measure }) {
+    const full = { x: 0, y: 0, ...dimensions };
+    const content = inset(full, Math.round(dimensions.width * 0.07));
 
-    return `
-      <rect x="0" y="${height - 32}" width="${width}" height="32"
-            fill="${config.colors.brandWarm}" />
-      <text x="80" y="${height / 2}"
-            font-family="${config.fontFamily}"
-            font-size="${width * 0.08}" font-weight="700"
-            fill="${config.colors.foreground}">${escapeXml(props.title ?? "")}</text>
-    `;
+    const lines = blockLines(props.title, measure, config.fontFamily, {
+      maxWidth: content.width,
+      maxLines: 2,
+      fontSize: Math.round(dimensions.height * 0.1),
+      floor: 0.65,
+      fontWeight: 700,
+      opacity: 1,
+    });
+
+    return (
+      box(
+        {
+          x: 0,
+          y: dimensions.height - 32,
+          width: dimensions.width,
+          height: 32,
+        },
+        { fill: config.colors.brandWarm },
+      ) +
+      drawLines(lines, content, {
+        fontFamily: config.fontFamily,
+        fill: config.colors.foreground,
+      })
+    );
   },
 };
 
@@ -244,18 +311,34 @@ export default defineConfig({
 });
 ```
 
+Those primitives are [the layout toolkit](https://colophonjs.dev/layout/), which is what the
+built-in templates are written on. Returning a string you built yourself works
+just as well, and `escapeXml` is exported for when you do.
+
 Some notes on writing one:
 
 - **Size everything from `dimensions`.** The same template is asked to draw a
   1200x1200 square and a 1200x630 landscape. Fractions of the width travel
   better than fixed pixel values, since that is what a feed scales the image to.
-- **Escape anything that came from frontmatter.** `escapeXml` is exported for
-  this. A title containing `&` produces invalid SVG otherwise.
+- **Escape anything that came from frontmatter.** The toolkit does it for you;
+  `escapeXml` is exported for the SVG you write by hand. A title containing `&`
+  produces an invalid document otherwise.
 - **`props` is open.** Colophon does not check what a template reads, so you can
   put whatever fields your layout needs into the props block.
+- **Images arrive loaded.** `logo` and `avatar` are `undefined` or an asset with
+  a `href` to hand to `image` and the `aspect` to size it by. Reading files is
+  the renderer's job, which is what keeps `render` a function over values. See
+  [Logos and photographs](https://colophonjs.dev/configuration/images/).
 - **`render` may return a promise** if it has to load something. Keep it
   synchronous when it does not need to. The built-in `code` template is async
   because it loads syntax grammars on demand.
+- **Measure text rather than guessing at it.** `measure(text, style)` gives the
+  width in pixels that a run of text will occupy, read from the font the build
+  is rendering with. Widths are exact where the family resolves to a font
+  supplied under [`fonts`](https://colophonjs.dev/configuration/fonts/) and estimated otherwise, so
+  a template never has to handle the two cases itself. `blockLines` and
+  `fitText` do the usual jobs of breaking a title across lines and shrinking one
+  that does not fit; see [the layout toolkit](https://colophonjs.dev/layout/).
 
 `config` here is the resolved config, with defaults applied and per-size
 overrides folded in, so `config.colors.brandWarm` is always a colour and
@@ -306,6 +389,10 @@ existing frontmatter usually needs no changes.
 A snippet's leading indentation is dropped before anything else happens, so
 lifting a sample out of a nested block costs you no width.
 
+The title is drawn as one line at a fixed size, in the room set aside for it
+above the panel. It is not wrapped or shrunk to fit, so keep it to a few words
+and let the snippet carry the detail.
+
 ## How the font size is chosen
 
 Colophon measures the longest line and the line count against a monospace grid,
@@ -350,7 +437,6 @@ export default defineConfig({
   code: {
     theme: "night-owl", // any bundled Shiki theme
     fontFamily: '"JetBrains Mono", monospace',
-    charWidthRatio: 0.6, // glyph advance / font size, for your monospace face
     lineHeight: 1.55,
     tabSize: 2,
     cornerScale: 0.025,
@@ -360,20 +446,237 @@ export default defineConfig({
 });
 ```
 
-## Matching charWidthRatio to your font
+## Supply the monospace face
 
-The template positions every token absolutely from its character column, so
-`charWidthRatio` is how the layout knows where each one sits. It has to match
-the font actually being used, or the columns drift across the line.
+The template positions every token absolutely from its character column, so how
+wide one character is decides where each one sits. That width is measured from
+the font, which means the face has to be one Colophon loaded: supply it as a
+file under [`fonts`](https://colophonjs.dev/configuration/fonts/) and name it in `code.fontFamily`.
 
-`0.6` suits most monospace faces, including Source Code Pro, Menlo and DejaVu
-Sans Mono. Consolas wants about `0.55`.
+Without a file there is nothing to measure, and the layout falls back to
+assuming `0.6` of the font size per character. That suits most monospace faces,
+including Source Code Pro, Menlo and DejaVu Sans Mono, but Consolas is nearer
+`0.55`, and a mismatch shows up as columns drifting across the line.
 
-The reliable way to get the ratio you set is to supply the monospace face as a
-file under [`fonts`](https://colophonjs.dev/configuration/fonts/), so the renderer is not left
-picking whatever the machine has. The default stack ends in the generic
-`monospace` family, which resolves to something everywhere but not to the same
-thing everywhere.
+The default stack ends in the generic `monospace` family, which resolves to
+something everywhere but not to the same thing everywhere.
+
+This used to be a `code.charWidthRatio` setting. It has gone: see
+[Upgrading](https://colophonjs.dev/upgrading/).
+
+---
+
+# The layout toolkit
+
+Source: https://colophonjs.dev/layout/
+
+Writing a template means returning a string of SVG. That is fine for a heading
+and a rectangle, and it stops being fine at about the point you want a photo
+behind the text with a gradient over it and a row of chips along the top.
+
+The toolkit is the set of small functions the built-in templates are made from.
+Nothing in it holds state: each function takes values and returns them, whether
+that is a rectangle, a list of lines or a string of SVG. A template that would
+rather write its own SVG by hand still can.
+
+```ts
+
+```
+
+The subpath loads no rasteriser, no syntax highlighter and nothing from Node, so
+a template built on it is a plain function over strings. Everything is exported
+from the root entry point too, if you are importing `defineConfig` anyway and
+would rather have one import.
+
+## Rectangles
+
+Every primitive takes a rectangle, and the one a template starts with is the
+image itself. `inset` is how you get from there to somewhere sensible:
+
+```ts
+const full = { x: 0, y: 0, ...dimensions };
+const content = inset(full, Math.round(dimensions.width * 0.08));
+const belowHeader = inset(content, { top: 120 });
+```
+
+One number brings every edge in. An object brings in the edges it names. An
+inset bigger than the rectangle collapses it rather than turning it inside out.
+
+## Text
+
+Text goes in two steps, because the two questions are separate: how many lines
+does this become, and where do they go.
+
+`blockLines` answers the first. It reads a prop, fits it to a width, shrinks it
+if it does not fit, and gives back the lines with the size they ended up at:
+
+```ts
+const lines = blockLines(props.title, measure, config.fontFamily, {
+  maxWidth: content.width,
+  maxLines: 3,
+  fontSize: Math.round(height * 0.1),
+  floor: 0.62, // may shrink to 62% of fontSize before it is cut instead
+  fontWeight: 800,
+  opacity: 1,
+});
+```
+
+`measure` comes in on the template context rather than from this module, because
+only the build knows which fonts it loaded. See
+[Fonts](https://colophonjs.dev/configuration/fonts/) for what it can and cannot measure exactly.
+
+`drawLines` answers the second, placing the lines as one block and writing the
+`<text>` elements:
+
+```ts
+drawLines(lines, content, {
+  fontFamily: config.fontFamily,
+  fill: config.colors.foreground,
+  anchor: "middle", // omit to draw from the left edge
+});
+```
+
+Concatenate the lines from several calls to lay out a title and a subtitle
+together, giving the second group a `gapBefore` to separate them. That is all
+the `banner` template does.
+
+For finer control there is `placeLines`, which returns the baselines and leaves
+the drawing to you, and `baselineFor`, which is the single-line case: give it
+the top of a band one font size tall and it returns the baseline to draw at.
+
+```ts
+const heading = { x: 0, y: 60, width, height: 54 };
+textElement(title, { y: baselineFor(heading.y, 54), fontSize: 54, ...attrs });
+```
+
+Reach for it wherever a template has reserved a strip for one line, since
+picking the baseline by eye is how the clear space around a line stops matching
+the space that was set aside for it. The descender takes what is left of the
+band below the baseline, so the room under a line is not the room above it.
+
+There is also `measureIn`, which binds a measurer to one family and weight so
+you can ask how wide something is:
+
+```ts
+const widthOf = measureIn(measure, config.fontFamily, 700);
+const chipWidth = widthOf("release", 32) + 48;
+```
+
+## Boxes and panels
+
+`box` is a rectangle with a fill, corners and a stroke. Attributes you do not
+name are left out.
+
+```ts
+box(rect, { radius: 20, fill: "#ffffff", fillOpacity: 0.16 });
+```
+
+`panel` is a box that casts a shadow, which is what makes something read as
+sitting on top of the image rather than being part of it:
+
+```ts
+panel(rect, { radius: 24, fill: "#0d1117", shadow: 12 });
+```
+
+The shadow is a second rectangle offset downwards rather than a blur filter. It
+costs the rasteriser nothing and reads as depth just as well at these sizes.
+
+## Images
+
+`image` draws a raster image within a rectangle. Pass a `data:` URI: an image
+read at build time and inlined renders the same wherever the build runs, with
+nothing to fetch.
+
+```ts
+
+const bytes = await readFile("hero.jpg");
+image(full, `data:image/jpeg;base64,${bytes.toString("base64")}`);
+```
+
+`fit` defaults to `cover`, which fills the rectangle and crops the overflow.
+Pass `contain` for a logo, since cropping a wordmark ruins it. `radius` rounds
+the corners and needs an `id` to hang its clip path on.
+
+## Scrims
+
+A scrim is a wash of colour over an image so the text on top of it can be read.
+Photographs have light and dark in them wherever they like, and white text over
+a bright sky is invisible.
+
+```ts
+scrim(full, "hero-scrim", { from: 0.1, to: 0.8 });
+```
+
+That shades from nearly clear at the top to mostly dark at the bottom, which
+suits a headline sitting low. Pass the same value for `from` and `to` for a flat
+wash, which needs no gradient and so ignores the id.
+
+## Rows and stacks
+
+`stack` places items down an area and `row` places them across one. Both return
+a rectangle per item, and both take an alignment of `start`, `centre` or `end`.
+
+```ts
+const chips = row(
+  tags.map((tag) => ({ size: widthOf(tag, 32) + 48, gapBefore: 16 })),
+  { ...content, height: 64 },
+  "start",
+);
+```
+
+A group larger than the space it was given starts at the edge and runs over
+rather than being squeezed, so a template that has overflowed can see that it
+has. Both are the same function underneath, `distribute`, which is exported for
+laying something out along an axis that is neither.
+
+## Ids have to be unique
+
+Gradients and clip paths are referenced by id, and an image is one SVG document,
+so two scrims sharing an id means the second one wins in both places. Name them
+after what they are for rather than after the primitive, and add the size name
+if a template draws several.
+
+## A whole template
+
+```ts
+
+  blockLines,
+  drawLines,
+  image,
+  inset,
+  scrim,
+  type Template,
+} from "@kensio/colophon/layout";
+
+export const photo: Template = {
+  name: "photo",
+  render({ props, config, dimensions, measure }) {
+    const full = { x: 0, y: 0, ...dimensions };
+    const content = inset(full, Math.round(dimensions.width * 0.07));
+
+    const lines = blockLines(props.title, measure, config.fontFamily, {
+      maxWidth: content.width,
+      maxLines: 3,
+      fontSize: Math.round(dimensions.height * 0.09),
+      floor: 0.6,
+      fontWeight: 800,
+      opacity: 1,
+    });
+
+    return (
+      image(full, String(props["photo"])) +
+      scrim(full, "photo-scrim", { from: 0.1, to: 0.8 }) +
+      drawLines(lines, content, {
+        fontFamily: config.fontFamily,
+        fill: config.colors.foreground,
+        align: "end",
+      })
+    );
+  },
+};
+```
+
+Register it under `config.templates` as [Templates](https://colophonjs.dev/templates/) describes.
 
 ---
 
@@ -538,22 +841,87 @@ highlighter, and this subpath does not.
 
 The pieces the above are built from are exported too, for anything that needs to
 work at a lower level: `buildSvg` and `renderSvgToPng` for the two halves of
-rendering, `resolveConfig` and `resolveConfigForSize` for config, `escapeXml`
-and `wrapText` for template authors, and `createStamper`, `readPngStamp` and
-`stampPng` for the rebuild stamps.
+rendering, `resolveConfig` and `resolveConfigForSize` for config, the
+[layout toolkit](https://colophonjs.dev/layout/) and `createMeasurer` for template authors, and
+`createStamper`, `readPngStamp` and `stampPng` for the rebuild stamps.
 
 [`metaTags`](https://colophonjs.dev/configuration/meta-tags/) has its own `@kensio/colophon/meta`
-subpath, which loads neither the rasteriser nor the highlighter.
+subpath, which loads neither the rasteriser nor the highlighter. So does
+[the layout toolkit](https://colophonjs.dev/layout/), as `@kensio/colophon/layout`, which loads
+nothing from Node at all.
 
 ---
 
-# Upgrading from 1.x
+# Upgrading
 
 Source: https://colophonjs.dev/upgrading/
 
+## From 2.x
+
+Text is measured against the fonts a build actually renders with, instead of
+being estimated from a per-template fudge factor. Wrapping and fitting change as
+a result, and so do three pieces of the API.
+
+Every image re-renders on the first build after the upgrade, as it does on any
+upgrade: the package version is part of the [rebuild stamp](https://colophonjs.dev/rebuilds/).
+
+### Text is fitted to the space it has
+
+A title too long for its lines used to be wrapped at a fixed size and then cut.
+It is now shrunk, down to about two thirds of its usual size, and only cut if it
+still does not fit at that floor.
+
+Nothing to change, but existing images will look different: titles that were
+losing their last few words now keep them, at a smaller size.
+
+### `code.charWidthRatio` has gone
+
+The `code` template lays tokens out on a character grid, and this was the number
+that said how wide a character is. It is measured from the monospace face now.
+
+Delete it from your config, which otherwise fails validation with a message
+saying the same thing. To have the width measured rather than assumed, supply
+the face as a file under [`fonts`](https://colophonjs.dev/configuration/fonts/) and name it in
+`code.fontFamily`. Builds that do neither fall back to the `0.6` that was the
+default here.
+
+### `wrapText` takes a width and a measurer
+
+```ts
+// Before
+wrapText(title, estimateCharsPerLine(width, fontSize, 0.58));
+
+// After
+wrapText(title, width, (line) => measure(line, { fontFamily, fontSize }));
+```
+
+It wraps to a width in pixels rather than to a count of characters, and it
+breaks a word that is too wide for a line of its own rather than letting it run
+off the image. `estimateCharsPerLine` has gone with the factors it existed for.
+
+### `TemplateContext` carries a `measure`
+
+Custom templates receive a fourth field, `measure`, and need no changes to keep
+working. What breaks is code that builds a `TemplateContext` itself to call a
+template directly, which is mostly test code. Build one with `createMeasurer`:
+
+```ts
+const config = resolveConfig(userConfig);
+const svg = await myTemplate.render({
+  props,
+  config,
+  dimensions,
+  measure: await createMeasurer(config),
+});
+```
+
+`buildSvg`, `renderMetaImages` and `generate` all do this for you.
+
+## From 1.x
+
 Adding the [code template](https://colophonjs.dev/code-template/) made two small breaking changes.
 
-## `Template.render` may return a promise
+### `Template.render` may return a promise
 
 `render` now returns `string | Promise<string>`, and `buildSvg` is async.
 
@@ -563,7 +931,7 @@ updating is any direct call site of `buildSvg`, which now needs an `await`.
 `renderMetaImages` and `generate` were already async, so nothing changes for
 code that uses those.
 
-## `MetaImageProps.title` is optional
+### `MetaImageProps.title` is optional
 
 `title` is no longer required, and `walkContent` and `extractProps` no longer
 skip a file that declares props without one.
@@ -609,13 +977,15 @@ yourself.
 
 | Option        | Default                                       | Notes                                                             |
 | ------------- | --------------------------------------------- | ----------------------------------------------------------------- |
+| `theme`       | none                                          | A named look. See [Themes](https://colophonjs.dev/configuration/themes/).                            |
 | `colors`      | neutral indigo/pink                           | `brand`, `brandDark`, `brandWarm`, `foreground`.                  |
-| `background`  | gradient derived from `colors`                | Or a `{ type: "solid" }` or custom gradient.                      |
+| `background`  | gradient derived from `colors`                | Or a solid colour, a mesh, a gradient or a photo.                 |
+| `texture`     | none                                          | Grain, dots or ruled lines. See [Themes](https://colophonjs.dev/configuration/themes/).              |
 | `fonts`       | none                                          | Font files to render with. See [Fonts](https://colophonjs.dev/configuration/fonts/).                 |
 | `systemFonts` | `true` until `fonts` is set                   | Whether installed fonts are loaded too.                           |
 | `fontFamily`  | first font, else `Arial, ...`                 | Font stack for template text.                                     |
 | `footer`      | none                                          | Footer text. Omit the field for none.                             |
-| `badge`       | none                                          | Corner badge for `banner`. Omit the field for none.               |
+| `badge`       | none                                          | Corner badge for `banner`, which a post may override or turn off. |
 | `code`        | `github-dark`, monospace stack                | Styling for [the code template](https://colophonjs.dev/code-template/).               |
 | `onWarning`   | `console.warn`                                | Where compromises are reported. See [Warnings](https://colophonjs.dev/configuration/warnings/).      |
 | `sizes`       | `og` and `square`                             | Named output sizes. See [Output sizes](https://colophonjs.dev/configuration/sizes/).                 |
@@ -673,6 +1043,15 @@ Unknown option "dimensions". Did you mean "sizes"?
 Where there is an obvious near miss it is named, including options that have
 been renamed between versions. Where there is not, the message lists what is
 valid at that point in the config.
+
+An option that has been removed says so, and says what happened instead, since
+there is no name to point at:
+
+```text
+Option "code.charWidthRatio" has been removed: character width is measured from
+the font now. Supply the monospace face under `fonts` to have it measured
+exactly.
+```
 
 Nested objects are checked too, and named by their path: `code.tabsize`,
 `sizes[1].heigth`, `background.stops[0].ofset`. Everything wrong with a config
@@ -850,11 +1229,307 @@ for.
 An unknown family falls back to a configured font rather than rendering nothing,
 so a mismatched name shows up as the wrong typeface rather than a blank image.
 
+## Measuring, not guessing
+
+A configured font is also the font Colophon measures against when it decides
+where a line of text breaks and how large it can be drawn. Glyph advances come
+out of the file itself, so a title wraps where it really runs out of room, and a
+long one is shrunk to fit rather than cut short.
+
+Without a font file there is nothing to measure, because the text will be drawn
+in whatever the machine has. Colophon estimates instead: a fixed fraction of the
+font size per character, with full-width characters counted as a whole em. That
+is close enough for Latin text and rough for everything else, which is another
+reason to supply the file.
+
+Weights follow the same rule as drawing does. A title asks for weight `800`, and
+whichever of your faces is nearest that weight is both what gets drawn and what
+gets measured, so the two agree.
+
 ## Fonts are not per-size
 
 `fonts` and `systemFonts` are shared build inputs, so they cannot be overridden
 by an individual output size. `fontFamily` can be, because it picks from the
 fonts already loaded. See [Per-size config](https://colophonjs.dev/configuration/per-size-config/).
+
+---
+
+# Themes and background treatments
+
+Source: https://colophonjs.dev/configuration/themes/
+
+A theme is a named look: a palette, a background and, for some of them, a
+texture over it. It is the shortest config there is.
+
+```ts
+export default defineConfig({
+  theme: "midnight",
+  footer: "example.com",
+});
+```
+
+## The set
+
+| Theme       | Look                                                |
+| ----------- | --------------------------------------------------- |
+| `midnight`  | Deep navy, indigo and violet mesh, faint dot grid   |
+| `aurora`    | Near-black teal under teal, cyan and violet         |
+| `ember`     | Warm dark, brown into orange                        |
+| `forest`    | Deep green, ruled diagonally                        |
+| `bloom`     | Violet into pink and magenta                        |
+| `slate`     | Flat cool navy with a dot grid                      |
+| `paper`     | Warm off-white, ruled, near-black text              |
+| `sandstone` | Pale sand gradient with a dot grid, near-black text |
+
+<table>
+  <tr>
+    <td width="25%"><img src="../../samples/theme-midnight.png" alt="midnight theme" width="100%" /></td>
+    <td width="25%"><img src="../../samples/theme-aurora.png" alt="aurora theme" width="100%" /></td>
+    <td width="25%"><img src="../../samples/theme-ember.png" alt="ember theme" width="100%" /></td>
+    <td width="25%"><img src="../../samples/theme-forest.png" alt="forest theme" width="100%" /></td>
+  </tr>
+  <tr>
+    <td><img src="../../samples/theme-bloom.png" alt="bloom theme" width="100%" /></td>
+    <td><img src="../../samples/theme-slate.png" alt="slate theme" width="100%" /></td>
+    <td><img src="../../samples/theme-paper.png" alt="paper theme" width="100%" /></td>
+    <td><img src="../../samples/theme-sandstone.png" alt="sandstone theme" width="100%" /></td>
+  </tr>
+</table>
+
+Six are dark, because white text on a deep background is what a share image is
+usually asked to be, and two are light for a site whose own pages are.
+
+## What a theme actually sets
+
+`colors`, `background` and sometimes `texture`, and nothing else. They are
+ordinary config options, so a theme is a set of defaults rather than a look
+that cannot be argued with: name any of those three yourself and yours is used.
+
+```ts
+export default defineConfig({
+  theme: "midnight",
+  // Keeps midnight's mesh and dot grid; the badge and text follow this brand.
+  colors: { brand: "#0d9488" },
+});
+```
+
+The consequence worth knowing is the one in that comment. A theme's background
+is written out rather than derived from its palette, so changing `colors`
+changes the accent and the text and leaves the picture behind them alone. That
+is deliberate: `midnight` without its mesh and `slate` without its dot grid are
+the same flat navy image, so a theme that was only a palette would have very
+little to it. Set `background` as well when you want the whole thing to follow
+your own colours, or use `colors` on its own without a theme, which derives the
+usual gradient from your brand.
+
+An unknown theme name stops the build rather than being ignored, along with
+[every other unrecognised value](https://colophonjs.dev/configuration/#unknown-options).
+
+## Textures
+
+The treatments can be used on their own, over any background:
+
+```ts
+export default defineConfig({
+  colors: { brand: "#2563eb" },
+  texture: { type: "dots" },
+});
+```
+
+A texture is drawn over the background and under everything the template draws,
+so it never comes between a headline and the reader. All three are meant to be
+felt rather than seen, and the defaults are faint.
+
+| Texture   | Options                                     |
+| --------- | ------------------------------------------- |
+| `"grain"` | `opacity`, `scale`                          |
+| `"dots"`  | `color`, `opacity`, `size`, `gap`           |
+| `"rules"` | `color`, `opacity`, `width`, `gap`, `angle` |
+
+`dots` and `rules` default to the foreground colour, so they show up on a light
+theme as readily as on a dark one. Their lengths are in pixels at the size
+being rendered.
+
+### Grain costs bytes
+
+`grain` is one turbulence filter, and it looks the part, but per-pixel noise is
+the one thing PNG cannot compress. It takes a 1200×1200 image from around 600KB
+to a little over 2MB, and adds roughly 150ms to rendering it.
+
+That is well inside what the social platforms accept, and it is a lot to commit
+next to a post. It is why no theme turns grain on for you: it is worth choosing
+on purpose, and worth a look at what lands on disk afterwards.
+
+## Meshes
+
+A mesh is soft blobs of colour over a flat base, which is the look a linear
+gradient cannot give: colour that moves in more than one direction. Each blob
+is a radial fade, so it costs no more than a gradient does.
+
+```ts
+export default defineConfig({
+  background: {
+    type: "mesh",
+    color: "#0b1020",
+    blobs: [
+      { color: "#4338ca", x: 0.12, y: 0.05, radius: 0.55, opacity: 0.85 },
+      { color: "#7c3aed", x: 0.9, y: 0.85, radius: 0.5, opacity: 0.7 },
+    ],
+  },
+});
+```
+
+Positions are fractions of the image and radii are fractions of its longer
+side, so one mesh describes the same picture at every output size. Blobs are
+drawn in order, the later ones over the earlier, and each fades to nothing at
+its radius. Keep them off the base colour if you want it to show: a blob at
+full opacity with a radius near `1` covers everything.
+
+## Per size
+
+A [size](https://colophonjs.dev/configuration/per-size-config/) can name its own theme and texture, which is how
+a square gets a different treatment from a landscape:
+
+```ts
+sizes: [
+  { name: "og", width: 1200, height: 630 },
+  { name: "square", width: 1200, height: 1200, theme: "paper" },
+],
+```
+
+A size's theme applies the same way the config's does, as defaults under
+anything named outright. So a config with its own `texture` keeps it whatever
+theme a size asks for.
+
+---
+
+# Logos, avatars and photographs
+
+Source: https://colophonjs.dev/configuration/images/
+
+Three places an image can go into a generated one: a logo in the corner, an
+author's photo beside the footer, and a photograph behind everything.
+
+```ts
+export default defineConfig({
+  logo: { path: "brand/logo.svg" },
+  background: {
+    type: "image",
+    source: { path: "brand/cover.jpg" },
+    fit: "cover",
+  },
+});
+```
+
+A post supplies its own author photo through the `avatar` prop:
+
+```yaml
+---
+meta_img_props:
+  template: card
+  title: Measuring text properly
+  avatar: content/authors/hugh.jpg
+---
+```
+
+## Where they come from
+
+Anywhere `path` appears you can write `data` instead and pass the bytes, which
+is what a config that fetches its logo at build time wants. Paths resolve from
+the working directory, as [`fonts`](https://colophonjs.dev/configuration/fonts/) do, and are checked when the
+config is resolved rather than when the image is drawn: an unreadable file is a
+blank corner on every image in the build, and a blank corner does not say which
+path was wrong.
+
+The bytes are inlined into the SVG as a `data:` URI, so a generated image never
+depends on a file being fetchable later, and they go into the
+[rebuild stamp](https://colophonjs.dev/rebuilds/) by content. Replacing a logo at the same path
+renders every image drawn with it again.
+
+## Formats
+
+PNG, JPEG, GIF, WebP and SVG. The format is read from the bytes rather than the
+file extension, so a `.png` that is really a JPEG is still drawn.
+
+**Text inside an SVG is not rendered.** A nested document is drawn without the
+fonts the build loaded, so a wordmark comes out with its shapes and none of its
+letters. Convert the text to paths before exporting it, or use a PNG.
+
+## How big they come out
+
+A logo's height is a fraction of the image being drawn, so the same file works
+on a square and a landscape, and its width follows from the proportions of the
+picture. Those are read out of the image's own header, which is why a wide
+wordmark gets a wide slot and a round mark gets a square one.
+
+WebP is the exception: its dimensions live in one of three chunk layouts
+depending on how it was encoded, and rather than guess at bit-packed headers
+this treats a WebP as square. A wide WebP logo will sit small in the middle of
+its slot, so supply a wide logo as PNG or SVG.
+
+## Where they are drawn
+
+That is the template's business, and the built-ins put them here:
+
+| Template | Logo                          | Avatar            |
+| -------- | ----------------------------- | ----------------- |
+| `banner` | Top right, opposite the badge | Before the footer |
+| `card`   | Top centre, above the title   | Before the footer |
+| `code`   | Not drawn                     | Not drawn         |
+
+The text moves down to make room for a logo, so a title never runs into it.
+
+A [template of your own](https://colophonjs.dev/templates/) is handed both on its context, as
+`logo` and `avatar`, already loaded, along with the `image` primitive from
+[the layout toolkit](https://colophonjs.dev/layout/) to draw them with.
+
+## Photographs behind the text
+
+A background image takes a `fit`: `cover` fills the image and crops whatever
+does not fit, `contain` fits the whole picture in and shows `color` around it.
+
+```ts
+background: {
+  type: "image",
+  source: { path: "brand/cover.jpg" },
+  fit: "contain",
+  color: "#0f172a",
+  scrim: { from: 0.3, to: 0.8 },
+}
+```
+
+### The scrim is on by default
+
+A photograph is light and dark wherever it likes, and white text over a bright
+sky cannot be read. The scrim is the wash of colour between the picture and the
+text, and it is the difference between a designed image and text sitting on a
+photo.
+
+It defaults to a quarter of black at the top and about two thirds at the
+bottom. It starts at a quarter rather than at nothing because a template is
+free to put its text anywhere, and a wash that only darkens the bottom leaves a
+centred title sitting on whatever the middle of the photograph happens to be.
+
+Turn it down for a picture that is already dark, or off entirely:
+
+```ts
+scrim: { from: 0, to: 0 }
+```
+
+Set `color` to tint rather than shade: a brand colour at a low opacity over a
+photograph is what makes a set of images look like they belong together.
+
+## Per size
+
+`logo` and `background` are both [per-size overrides](https://colophonjs.dev/configuration/per-size-config/), so a
+tall Pinterest pin can carry a different photograph, or none:
+
+```ts
+sizes: [
+  SIZE_PRESETS.og,
+  { ...SIZE_PRESETS.square, background: { type: "solid", color: "#0f172a" } },
+],
+```
 
 ---
 
@@ -964,8 +1639,8 @@ re-walks and re-parses everything for every size.
 
 ## What can be overridden
 
-Overridable: `colors`, `background`, `fontFamily`, `footer`, `badge` and `code`.
-These are what a template reads while drawing.
+Overridable: `theme`, `colors`, `background`, `texture`, `fontFamily`, `footer`,
+`badge` and `code`. These are what a template reads while drawing.
 
 Not overridable:
 
@@ -995,10 +1670,22 @@ sizes: [
 
 That keeps the brand palette and changes only the text colour.
 
+That keeps a [theme's](https://colophonjs.dev/configuration/themes/) palette too, where the config names one and
+no colours of its own, so a size asking for whiter text does not drop the rest
+of the theme back to the neutral default.
+
 The other options replace rather than merge. A `background` is a union whose
 variants have different keys, so merging half of one onto half of another would
 produce a background that is neither. A `badge` carries a required `text` that a
 partial override could not supply.
+
+A post declaring [its own badge](https://colophonjs.dev/templates/) wins over a size's, since
+that one describes the post rather than the shape of the image.
+
+A size's `theme` replaces the config's and then applies as defaults, exactly as
+it would at the top level. So a config naming its own `background` keeps it
+whatever theme a size asks for, and a size wanting the whole look of one has the
+same answer a config does: stop naming the fields the theme should fill in.
 
 ## Overrides and rebuilds
 
@@ -1389,8 +2076,10 @@ project that named the output path of an extra already knows where it is.
 
 Source: https://colophonjs.dev/configuration/warnings/
 
-Some inputs cannot be honoured exactly. So far the only case is code too long to
-render legibly, described in [the code template](https://colophonjs.dev/code-template/).
+Some inputs cannot be honoured exactly. There are two cases: code too long to
+render legibly, described in [the code template](https://colophonjs.dev/code-template/), and a
+post whose `badge` prop is neither a badge nor `false`, described in
+[Templates](https://colophonjs.dev/templates/).
 
 Colophon renders anyway and reports the compromise through `onWarning`, which
 defaults to `console.warn`. Pass your build's logger to route the messages

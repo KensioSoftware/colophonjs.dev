@@ -78,6 +78,7 @@ const sidebarGroups = [
     routes: [
       "templates",
       "code-template",
+      "layout",
       "rebuilds",
       "programmatic-use",
       "upgrading",
@@ -90,6 +91,8 @@ const sidebarGroups = [
       "configuration",
       "configuration/frontmatter",
       "configuration/fonts",
+      "configuration/themes",
+      "configuration/images",
       "configuration/sizes",
       "configuration/per-size-config",
       "configuration/placement",
