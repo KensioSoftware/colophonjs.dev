@@ -105,10 +105,13 @@ function handler(event) {
       ),
     });
 
-    // The sibling sites also carry a TxtRecord holding their Google Search
-    // Console verification token. This site needs its own token from Search
-    // Console before that record can be added; one site's token does not
-    // verify another.
+    new route53.TxtRecord(this, "GoogleSiteVerificationRecord", {
+      zone: hostedZone,
+      recordName: domainName,
+      values: [
+        "google-site-verification=fMQtrAKFhsklP0bqvRmZbdrPStJqFwfLl-DiTiLT7Ng",
+      ],
+    });
 
     new cdk.CfnOutput(this, "WebsiteUrl", {
       value: `https://${domainName}`,
