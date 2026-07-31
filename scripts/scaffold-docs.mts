@@ -76,8 +76,11 @@ const sidebarGroups = [
     marker: "guide-sidebar",
     label: "Guides",
     routes: [
+      "cli",
       "templates",
       "code-template",
+      "astro",
+      "core",
       "layout",
       "rebuilds",
       "programmatic-use",
@@ -92,6 +95,9 @@ const sidebarGroups = [
       "configuration/frontmatter",
       "configuration/fonts",
       "configuration/themes",
+      "configuration/rasteriser",
+      "configuration/formats",
+      "configuration/compression",
       "configuration/images",
       "configuration/sizes",
       "configuration/per-size-config",
@@ -164,6 +170,13 @@ Set COLOPHON_REPO=/absolute/path/to/colophon if the checkout is elsewhere.`,
       routes: group.routes,
     })),
     optional: [
+      // Not in `sidebarGroups`: that list is checked against the colophon
+      // repo, and this page belongs to the site rather than to the docs.
+      {
+        label: "Playground",
+        url: `${siteUrl}/playground/`,
+        note: "build a config and render an image in the browser",
+      },
       {
         label: "npm package",
         url: "https://www.npmjs.com/package/@kensio/colophon",

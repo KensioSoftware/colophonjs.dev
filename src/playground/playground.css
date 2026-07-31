@@ -1,0 +1,292 @@
+/*
+ * Playground styling, on Starlight's own custom properties so it follows the
+ * site's light and dark themes rather than declaring a third one.
+ */
+
+.pg {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 1.5rem;
+
+  /*
+   * Three measurements shared by both columns, so the two sides line up.
+   *
+   * Each column starts with a head of `--pg-head-height`, then a gap of
+   * `--pg-head-gap`, then its body. That puts the top of the preview on the
+   * same line as the top of the config editor. Changing either value moves
+   * both sides together.
+   *
+   * Every button is exactly `--pg-control-height` tall, whether it holds one
+   * piece of text or two, so a row of them reads as one row.
+   */
+  --pg-control-height: 2rem;
+  --pg-head-height: 2.25rem;
+  --pg-head-gap: 0.5rem;
+}
+
+/*
+ * The notes under the playground, closed by default. Someone who came here to
+ * make an image should be able to do that without reading anything first.
+ */
+.sl-markdown-content details {
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--sl-color-gray-5);
+  padding-top: 1rem;
+}
+
+.sl-markdown-content details > summary {
+  cursor: pointer;
+  color: var(--sl-color-gray-2);
+  font-size: var(--sl-text-sm);
+}
+
+.sl-markdown-content details > summary:hover {
+  color: var(--sl-color-white);
+}
+
+/* The prose inside reads as a footnote, so it is set smaller than the page. */
+.sl-markdown-content details > :not(summary) {
+  font-size: var(--sl-text-sm);
+}
+
+@media (min-width: 60rem) {
+  .pg {
+    grid-template-columns: minmax(22rem, 2fr) minmax(0, 3fr);
+    align-items: start;
+  }
+}
+
+.pg-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.pg-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pg-head-gap);
+  min-width: 0;
+}
+
+/* Same height as the toolbar opposite it, so both bodies start on one line. */
+.pg-editor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-height: var(--pg-head-height);
+  align-content: center;
+}
+
+.pg-editor-label {
+  font-weight: 600;
+  color: var(--sl-color-white);
+}
+
+.pg-editor-hint {
+  font-size: var(--sl-text-xs);
+  color: var(--sl-color-gray-3);
+}
+
+.pg-textarea {
+  width: 100%;
+  min-height: 12rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+  background: var(--sl-color-black);
+  color: var(--sl-color-white);
+  font-family: var(--sl-font-mono, ui-monospace, monospace);
+  font-size: var(--sl-text-sm);
+  line-height: 1.6;
+  tab-size: 2;
+  resize: vertical;
+}
+
+/*
+ * The CodeMirror host. Its own styling is set in `codemirror.ts`, where the
+ * theme belongs, so this only has to stop a long line from widening the
+ * column and taking the grid with it.
+ */
+.pg-code {
+  min-width: 0;
+}
+
+.pg-code .cm-editor {
+  max-width: 100%;
+}
+
+.pg-textarea:focus-visible {
+  outline: 2px solid var(--sl-color-accent-high);
+  outline-offset: 1px;
+}
+
+.pg-textarea-bad {
+  border-color: var(--sl-color-red);
+}
+
+.pg-problems,
+.pg-warnings {
+  margin: 0;
+  padding: 0.6rem 0.9rem 0.6rem 2rem;
+  border-radius: 0.5rem;
+  font-size: var(--sl-text-xs);
+  line-height: 1.5;
+}
+
+.pg-problems {
+  background: var(--sl-color-red-low);
+  color: var(--sl-color-red-high);
+}
+
+.pg-warnings {
+  background: var(--sl-color-orange-low);
+  color: var(--sl-color-orange-high);
+}
+
+.pg-problems-general {
+  margin-top: 0.75rem;
+}
+
+.pg-output {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pg-head-gap);
+  min-width: 0;
+  /* Follows the page rather than scrolling away while the config is edited. */
+  position: sticky;
+  top: calc(var(--sl-nav-height) + 1rem);
+}
+
+/* Same height as the editor head opposite it. See the note on `.pg`. */
+.pg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: var(--pg-head-height);
+}
+
+.pg-sizes,
+.pg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/*
+ * One height for every button, set on the box rather than left to fall out of
+ * the padding. A size button holds a name and a dimension while an action
+ * button holds one word, and sized by padding alone the two come out
+ * different. `line-height: 1` keeps the two-part ones from growing.
+ */
+.pg-size,
+.pg-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: var(--pg-control-height);
+  padding: 0 0.75rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.4rem;
+  background: var(--sl-color-black);
+  color: var(--sl-color-gray-1);
+  font-size: var(--sl-text-xs);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pg-size:hover,
+.pg-button:hover:not(:disabled) {
+  border-color: var(--sl-color-gray-4);
+  color: var(--sl-color-white);
+}
+
+.pg-size-on {
+  border-color: var(--sl-color-accent);
+  color: var(--sl-color-white);
+}
+
+.pg-size-dims {
+  color: var(--sl-color-gray-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.pg-button-primary {
+  border-color: var(--sl-color-accent);
+  background: var(--sl-color-accent);
+  color: var(--sl-color-white);
+}
+
+.pg-button-primary:hover:not(:disabled) {
+  background: var(--sl-color-accent-high);
+  border-color: var(--sl-color-accent-high);
+}
+
+.pg-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pg-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12rem;
+  padding: 1rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+  /* A chequerboard, so an image with a transparent corner reads as one. */
+  background-color: var(--sl-color-gray-6);
+  background-image:
+    linear-gradient(45deg, var(--sl-color-gray-5) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--sl-color-gray-5) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--sl-color-gray-5) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--sl-color-gray-5) 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+  transition: opacity 150ms ease;
+}
+
+/* Something in an editor does not parse, so this is the last one that did. */
+.pg-preview-stale {
+  opacity: 0.45;
+}
+
+.pg-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 12px rgb(0 0 0 / 35%);
+}
+
+.pg-empty {
+  margin: 0;
+  color: var(--sl-color-gray-3);
+  font-size: var(--sl-text-sm);
+}
+
+.pg-status {
+  min-height: 1.25rem;
+  margin: 0;
+  font-size: var(--sl-text-xs);
+}
+
+.pg-status-ok {
+  color: var(--sl-color-green-high);
+}
+
+.pg-status-bad {
+  color: var(--sl-color-red-high);
+}

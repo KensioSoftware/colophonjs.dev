@@ -32,12 +32,14 @@ const images = await renderMetaImages(
 
 for (const image of images) {
   // image.name is the output-size name ("og", "square", and so on).
-  await writeFile(`social-${image.name}.png`, image.png);
+  await writeFile(`social-${image.name}.png`, image.bytes);
 }
 ```
 
 One image is returned per configured output size. Each carries its `name`,
-`dimensions`, the source `svg` and the encoded `png` bytes.
+`dimensions`, the source `svg` and the encoded `bytes`, in whatever
+[`format`](../configuration/formats/) the config asked for. `extensionFor` is
+what a build names its own files with, if you would rather not hardcode `.png`.
 
 This is the right entry point for rendering an image from data that is not a
 markdown file at all, such as a database row or an API response.
@@ -54,6 +56,7 @@ await generate({
   contentDir: "content",
   config: { colors: { brand: "#2563eb" } },
   overwrite: false,
+  dryRun: false, // work out what would change and write nothing
   concurrency: 4, // defaults to one per available CPU
   onResult: (result) =>
     // result.url is where it is served, when the placement knows.
@@ -65,6 +68,11 @@ await generate({
 because their [stamp](../rebuilds/) still matched. A result for an
 [extra image](../configuration/extra-images/) has `contentPath` set to
 `undefined`, since there is no post behind it.
+
+Under `dryRun` the results say what a real build would have done: `skipped` is
+`true` for an image whose stamp still matches, and `false` for one that would be
+rendered. Nothing is written, not even the manifest, and every check a build
+makes still runs. It is what the CLI's [`--dry-run`](../cli/) is.
 
 ### Options that are not config
 
@@ -96,13 +104,24 @@ Import it from the `@kensio/colophon/content` subpath when frontmatter discovery
 is all you want. The root entry point pulls in the rasteriser and the syntax
 highlighter, and this subpath does not.
 
+`readContentFile` is the same work for one file, which is what
+[`colophon preview`](../cli/) uses. It takes the file, the content root its path
+and slug are relative to, and the same options, and returns `undefined` where
+the file asks for no image:
+
+```ts
+import { readContentFile } from "@kensio/colophon/content";
+
+const file = await readContentFile("content/posts/hello.md", "content");
+```
+
 ## Other exports
 
 The pieces the above are built from are exported too, for anything that needs to
-work at a lower level: `buildSvg` and `renderSvgToPng` for the two halves of
+work at a lower level: `buildSvg` and `renderSvgToImage` for the two halves of
 rendering, `resolveConfig` and `resolveConfigForSize` for config, the
 [layout toolkit](../layout/) and `createMeasurer` for template authors, and
-`createStamper`, `readPngStamp` and `stampPng` for the rebuild stamps.
+`createStamper`, `readImageStamp` and `stampImage` for the rebuild stamps.
 
 [`metaTags`](../configuration/meta-tags/) has its own `@kensio/colophon/meta`
 subpath, which loads neither the rasteriser nor the highlighter. So does

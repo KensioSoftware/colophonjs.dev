@@ -4,10 +4,12 @@ description: "Some inputs cannot be honoured exactly."
 editUrl: "https://github.com/KensioSoftware/colophon/blob/main/docs/configuration/warnings/README.md"
 ---
 
-Some inputs cannot be honoured exactly. There are two cases: code too long to
-render legibly, described in [the code template](../../code-template/), and a
-post whose `badge` prop is neither a badge nor `false`, described in
-[Templates](../../templates/).
+Some inputs cannot be honoured exactly. There are three cases: a snippet too long
+to render legibly, described in [the code template](../../code-template/) and
+reported the same way for a `terminal` session; a post whose `badge` prop is
+neither a badge nor `false`, described in [Templates](../../templates/); and an
+image that will not fit its [`maxBytes`](../formats/#capping-the-size) cap even
+at the lowest quality.
 
 Colophon renders anyway and reports the compromise through `onWarning`, which
 defaults to `console.warn`. Pass your build's logger to route the messages

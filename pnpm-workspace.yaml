@@ -2,5 +2,5 @@ allowBuilds:
   esbuild: true
   sharp: true
 minimumReleaseAgeExclude:
-  - '@kensio/colophon@2.3.0'
+  - '@kensio/colophon@2.7.0'
   - '@kensio/yulin@0.41.0'

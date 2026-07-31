@@ -115,6 +115,11 @@ carry so you do not have to edit every file.
 ## Add a config file
 
 Config is optional. Without one, Colophon renders with neutral defaults.
+`colophon init` writes a starter one, and guesses where your content lives:
+
+```bash
+colophon init
+```
 
 ```ts
 // colophon.config.ts
@@ -153,17 +158,23 @@ one URL prefix, see [Placement](https://colophonjs.dev/configuration/placement/)
 ## Command line options
 
 ```text
-colophon [contentDir] [options]
+colophon [contentDir] [options]    Render the images for a content tree
+colophon init [contentDir]         Write a starter config module
+colophon preview <file> [options]  Render one post and open it
 
   -c, --config <path>   Config module whose default export is a ColophonConfig,
                         or a function returning one
   -f, --force           Re-render every image, ignoring the stamps
   -o, --overwrite       Alias for --force
+  -n, --dry-run         Report what would change and write nothing
+  -w, --watch           Rebuild whenever a content file changes
   --concurrency <n>     How many images to render at once
+  --size <name>         Which configured size preview renders
   -h, --help            Show help
 
   contentDir            defaults to "content"
   --concurrency         defaults to one per available CPU
+  --size                defaults to the first configured size
 ```
 
 Images are rendered a few at a time rather than all at once, so a tree of a few
@@ -171,11 +182,239 @@ hundred posts does not start a few hundred rasterisations and thrash. The
 default of one per available CPU suits a build machine with nothing else to do.
 Lower it with `--concurrency` to leave room for whatever else is running.
 
+While tuning a template, `colophon preview <file>` renders one post and opens
+it, and `--watch` rebuilds the tree on every change. [The command
+line](https://colophonjs.dev/cli/) covers all of it.
+
 ## Where to go next
 
+- [The command line](https://colophonjs.dev/cli/) covers `init`, `preview`, dry runs and watching.
 - [Templates](https://colophonjs.dev/templates/) covers the built-in layouts and how to add one.
 - [Rebuilds](https://colophonjs.dev/rebuilds/) explains when an image is rendered again.
 - [Programmatic use](https://colophonjs.dev/programmatic-use/) covers the API the CLI is built on.
+
+---
+
+# The command line
+
+Source: https://colophonjs.dev/cli/
+
+```text
+colophon [contentDir] [options]    Render the images for a content tree
+colophon init [contentDir]         Write a starter config module
+colophon preview <file> [options]  Render one post and open it
+colophon eject hugo                Write a Hugo partial that emits the tags
+```
+
+| Option                | What it does                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| `-c`, `--config` path | Load a config module, whose default export is a config or a function returning it  |
+| `-f`, `--force`       | Re-render every image, ignoring the stamps. For `init` and `eject`, replace a file |
+| `-o`, `--overwrite`   | Alias for `--force`                                                                |
+| `-n`, `--dry-run`     | Report what would change and write nothing                                         |
+| `-w`, `--watch`       | Rebuild whenever a content file changes                                            |
+| `--concurrency` n     | How many images to render at once. Defaults to one per available CPU               |
+| `--size` name         | Which configured size `preview` renders. Defaults to the first one                 |
+| `-h`, `--help`        | Show the help text                                                                 |
+
+The first argument is read as a command only where it names one, so a content
+directory called `init`, `preview` or `eject` has to be written as `./init`. Everything
+else stays as it was: with no command, the first argument is the content
+directory, and `content` is the default.
+
+An option the CLI does not have is an error rather than something it ignores.
+`--dry-runs` would otherwise render and write the whole tree, which is the one
+thing the run was asking it not to do. A value can be joined to its flag or
+follow it, so `--config=colophon.config.ts` and `--config colophon.config.ts`
+are the same thing.
+
+An option that belongs to another command, such as `--size` on a build, is
+accepted and does nothing.
+
+## Rendering a tree
+
+```bash
+colophon content --config colophon.config.ts
+```
+
+Every file that declares image props gets one image per output size. Images
+carry a [stamp](https://colophonjs.dev/rebuilds/) of the props, config and size they came from, so a
+second run renders only what has actually changed.
+
+## colophon init
+
+```bash
+colophon init
+```
+
+Writes a starter config module in the working directory and prints the command
+to run against it. The config has the fields most projects change, with the rest
+commented out and explained.
+
+It writes `colophon.config.js` where the project's `package.json` says
+`"type": "module"`, and `colophon.config.mjs` where it does not: a Colophon
+config is an ES module, and in a CommonJS project a `.js` config would fail the
+
+A config module that is already there is left alone unless `--force` is given,
+and then it is replaced at its own path, so a project that settled on
+`colophon.config.ts` does not end up holding two configs.
+
+The content directory in the printed command is a guess, taken from the usual
+places (`content`, `src/content`, `posts`, `src/posts`, `_posts`, `src/pages`).
+Name yours to skip the guess:
+
+```bash
+colophon init essays
+```
+
+## colophon preview
+
+```bash
+colophon preview content/posts/hello.md --config colophon.config.ts
+```
+
+Renders that one post and opens the image, which is what tuning a template, a
+palette or a code snippet wants: the alternative is running the whole build and
+picking the one image out of it that was the point.
+
+The image goes to a temporary directory rather than into the content tree.
+Written beside the post it would land on the real image, which the next build
+would then find unstamped and render again, so previewing would quietly
+invalidate the tree it was previewing against. The path is printed as well as
+opened, so a shell can do something else with the file:
+
+```bash
+open "$(colophon preview content/posts/hello.md)"
+```
+
+One image is rendered, at the first configured size. `--size` picks another:
+
+```bash
+colophon preview content/posts/hello.md --size og
+```
+
+A post that declares no image props is an error here, because the run named that
+file: in a build the same post is simply skipped.
+
+## colophon eject
+
+```bash
+colophon eject hugo
+colophon eject astro
+```
+
+Writes a template into your site that emits the meta tags for the page being
+rendered. There is one per generator:
+
+| Generator | Written to                          |
+| --------- | ----------------------------------- |
+| `hugo`    | `layouts/partials/colophon.html`    |
+| `astro`   | `src/components/ColophonMeta.astro` |
+
+The Astro one is half of [the Astro integration](https://colophonjs.dev/astro/); the rest of this
+section is about the Hugo one.
+
+Writes `layouts/partials/colophon.html` into a Hugo site: a partial that looks
+the current page up in the [manifest](https://colophonjs.dev/configuration/manifest/) and emits its
+social meta tags. Call it from your head:
+
+```go-html-template
+{{ partial "colophon.html" . }}
+```
+
+and point `manifest` at `data/colophon.json`, which is where Hugo reads site
+data from.
+
+Without it a Hugo site does this part itself, globbing for `*-og.png` to find
+the landscape variant and hardcoding 1200 and 630 into the tags, because nothing
+told it what was generated. The two sites this partial was taken from spent 50
+and 58 lines on it.
+
+### What it emits
+
+The same tags [`metaTags`](https://colophonjs.dev/configuration/meta-tags/) does, which is the same
+job for a site that renders in JavaScript: `og:image` with its width, height and
+alt text, and the Twitter pair, with `summary_large_image` for a landscape image
+and `summary` for a square one.
+
+### Finding the page
+
+The manifest is keyed by slug, and which slug depends on the
+[`slugStrategy`](https://colophonjs.dev/configuration/sizes/#slug-strategies) the build used. The
+partial tries, in order: a `colophon_key` page parameter, the page's own `slug`,
+the route, and the file's base name. So it covers both strategies without being
+told which, and `colophon_key` is there for a site whose keys are its own.
+
+### The fallback chain
+
+An explicit `images` parameter on the page wins, then the generated image, then
+the site's own `images` parameter. Both are Hugo's existing convention, so a
+site that already sets them keeps working. Width, height and alt describe the
+generated image, so they are emitted only for that one.
+
+A manifest entry whose image has no URL counts as no image, and falls through to
+the site default. That happens when the [placement](https://colophonjs.dev/configuration/placement/)
+has no `urlBase`, which records dimensions and no address.
+
+### It is yours after that
+
+Ejecting rather than importing is the point. Colophon writes the file and then
+leaves it alone, so a site that wants a different fallback chain, or one more
+tag, edits it. `colophon eject hugo --force` replaces it, which is worth
+remembering before running that.
+
+It needs Hugo 0.156 or newer for `hugo.Data`. On an older Hugo, change the two
+references in the file to `site.Data`, which the file itself says.
+
+## Dry runs
+
+```bash
+colophon content --config colophon.config.ts --dry-run
+```
+
+Reports what a real build would do and writes nothing, neither images nor a
+[manifest](https://colophonjs.dev/configuration/manifest/):
+
+```text
+write content/hello/hello-og.png
+skip  content/snippet/snippet-og.png
+Dry run: 1 would be written, 1 already up to date. Nothing was written.
+```
+
+The plan is built and the stamps are read, so every check a real build makes
+still runs: two images written to one path, a manifest two pages would share, a
+font file that is not there. A dry run is therefore also how to find out whether
+a config would build at all.
+
+Nothing is rendered, so a compromise a template would have reported, such as a
+[truncated code snippet](https://colophonjs.dev/code-template/), is not reported either. Those come
+from rendering, and a dry run does not render.
+
+## Watching
+
+```bash
+colophon content --config colophon.config.ts --watch
+```
+
+Builds the tree, then builds it again whenever a content file changes, until you
+stop it. Only the changed post's images are rendered, since the rest still match
+their stamps.
+
+Two things it does not do:
+
+- **A config change is not picked up.** Restart the watch after editing one.
+  Reloading a module means importing it again under a fresh URL and leaving the
+  old copy behind, and the modules it imports could not be invalidated at all,
+  so a template edited in a config file would appear to change nothing.
+- **Only content files count.** A change is one to a file with an extension the
+  walk reads, which is `.md` and `.markdown` unless
+  [`content.extensions`](https://colophonjs.dev/configuration/frontmatter/) says otherwise. That is
+  what stops the images a build writes next to their posts from triggering the
+  next build, and it ignores an editor's own `post.md~` and `.post.md.swp` along
+  the way.
+
+A build that fails is reported and the watch carries on, since the mistake is
+usually in the file that was just saved.
 
 ---
 
@@ -186,14 +425,35 @@ Source: https://colophonjs.dev/templates/
 A template is a layout. Frontmatter picks one by name, so different posts on the
 same site can produce different kinds of image from the same config.
 
-| Name     | Layout                                                                       |
-| -------- | ---------------------------------------------------------------------------- |
-| `banner` | Left-aligned title with optional version, subtitle, corner badge and footer. |
-| `card`   | Minimal centred title with an optional subtitle.                             |
-| `code`   | Syntax-highlighted snippet on a rounded panel over the background.           |
+| Name       | Layout                                                                       | Props it reads beyond `title` and `subtitle` |
+| ---------- | ---------------------------------------------------------------------------- | -------------------------------------------- |
+| `banner`   | Left-aligned title with optional version, subtitle, corner badge and footer. | `version`, `badge`                           |
+| `card`     | Minimal centred title with an optional subtitle.                             |                                              |
+| `code`     | Syntax-highlighted snippet on a rounded panel over the background.           | `code`, `language`, `theme`                  |
+| `article`  | Tags, headline and standfirst, with a byline along the bottom.               | `tags`, `author`, `date`, `avatar`           |
+| `quote`    | A pull quote with the speaker under it.                                      | `quote`, `author`, `role`, `avatar`          |
+| `terminal` | A command and its output, in window chrome.                                  | `command`, `output`, `prompt`, `title`       |
+| `release`  | A version, what it is, and the headline changes as a list.                   | `version`, `changes`                         |
+| `stat`     | One big figure with a label above and a caption below.                       | `stat`                                       |
+| `photo`    | The post's photograph, scrimmed, with the title over the bottom of it.       | `image`                                      |
+| `wordmark` | The configured logo above a name and tagline.                                |                                              |
+| `docs`     | A breadcrumb trail, a rule, then the page's title.                           | `breadcrumb`                                 |
+| `event`    | A date on a plate, then what the event is and where.                         | `date`, `location`                           |
 
 The `code` template has enough of its own behaviour to need
-[a page of its own](https://colophonjs.dev/code-template/).
+[a page of its own](https://colophonjs.dev/code-template/). Every one of the others is described
+under [The templates one by one](#the-templates-one-by-one) below.
+
+All of them draw the configured [footer](https://colophonjs.dev/configuration/). Most draw the
+configured logo too, in the corner the layout leaves free, except that
+`wordmark` puts it in the middle as the subject of the image and `code`,
+`terminal` and `quote` draw no logo at all: the first two have a panel where it
+would go, and the third is a quotation with nothing else on the image. See
+[Logos, avatars and photographs](https://colophonjs.dev/configuration/images/) for where each one
+puts them.
+
+Anything a template reads and the post does not carry is simply left out, and
+the rest of the layout takes the room back.
 
 ## Choosing a template
 
@@ -215,7 +475,8 @@ Naming a template that is not registered fails the build and lists the ones that
 are, because a name typed into frontmatter is easy to get wrong:
 
 ```text
-Unknown template "bannner". Available templates: banner, card, code.
+Unknown template "bannner". Available templates: article, banner, card,
+code, docs, event, photo, quote, release, stat, terminal, wordmark.
 ```
 
 ## The badge on a banner
@@ -257,6 +518,209 @@ the post rather than the shape of the image.
 A `badge` that is neither an object with text nor `false` is
 [reported](https://colophonjs.dev/configuration/warnings/) and the configured badge is drawn, which
 leaves the post with the image it would have had if it had said nothing.
+
+## The templates one by one
+
+### `article`
+
+The default blog card: tags along the top, the headline and its standfirst in
+the middle, and who wrote it and when along the bottom.
+
+```yaml
+---
+meta_img_props:
+  template: article
+  title: Keep test state inside each test case
+  subtitle: Shared fixtures save a few lines and cost you the ability to read one test on its own
+  tags: [typescript, testing]
+  author: Hugh Grigg
+  date: 30 July 2026
+  avatar: ./authors/hugh.png
+---
+```
+
+`tags` may be a list or a single value, and tags that do not fit are dropped
+rather than wrapped: the row is a hint at the subject, not the post's whole tag
+list. The `avatar` is drawn beside the byline rather than beside the footer, so
+the two ends of the bottom line say different things: who wrote this post at
+the left, whose site it is at the right. Where there is not room for both, the
+date goes first and the author's name is cut only if it has to be.
+
+Nothing here parses the date. Whatever the post wrote is what is drawn, since a
+build cannot know which locale the site is in or how much precision the post
+wanted.
+
+### `quote`
+
+A pull quote: an oversized quotation mark in the accent colour, the words, and
+who said them.
+
+```yaml
+---
+meta_img_props:
+  template: quote
+  quote: A template is a layout, and a layout is arithmetic you can look at.
+  author: Hugh Grigg
+  role: Kensio Software
+---
+```
+
+`title` is read where there is no `quote`, since a post about one sentence
+usually has that sentence in its title already. There is no logo on this one:
+the quotation is the whole image.
+
+### `terminal`
+
+A command and what it printed, in a terminal window. The same text on a plain
+panel is a snippet; in a window it is something somebody ran.
+
+```yaml
+---
+meta_img_props:
+  template: terminal
+  title: colophon
+  command: colophon build content --force
+  output: |
+    rendered 14 images from 7 posts
+    done in 1.9s
+---
+```
+
+`prompt` defaults to `$`, and `title` goes in the window's bar rather than
+above it. The command is highlighted as shell; the output is not, since a shell
+grammar run over arbitrary output colours words for reasons the reader cannot
+see.
+
+A `command` of several lines is several commands, so each one gets its own
+prompt, which is what a terminal shows for a run of them. A blank line between
+two does not, since a prompt with nothing after it reads as a command that was
+never typed.
+
+Underneath it is the `code` template, so everything under
+[`code`](https://colophonjs.dev/code-template/) applies here too: the monospace family, the line
+height, the font-size bounds, and the syntax theme the window takes its
+background and foreground from. A session too long to fit is truncated with an
+ellipsis and [reported](https://colophonjs.dev/configuration/warnings/), exactly as a snippet is.
+
+### `release`
+
+A changelog post: the version as the headline, what the release is, then its
+headline changes.
+
+```yaml
+---
+meta_img_props:
+  template: release
+  version: 2.5.0
+  title: Templates, themes and a browser-safe core
+  changes:
+    - Nine more templates
+    - A manifest of every image a build wrote
+---
+```
+
+A `v` goes in front of the version unless it already has one, so `2.5.0` and
+`v2.5.0` both draw `v2.5.0`. Four changes are drawn and the rest are left to
+the post; each is one line, cut with an ellipsis where it is too long.
+
+### `stat`
+
+One figure with a label above and a caption below.
+
+```yaml
+---
+meta_img_props:
+  template: stat
+  title: Downloads this month
+  stat: 1.4M
+  subtitle: Up from 900k in June
+---
+```
+
+The figure shrinks a long way rather than wrapping, since `42` and
+`1.4 million downloads` are both things people write in that field.
+
+### `photo`
+
+The post's own photograph, with the title set over the bottom of it.
+
+```yaml
+---
+meta_img_props:
+  template: photo
+  title: A morning on the Mendips
+  subtitle: Twelve miles, one flask of tea
+  image: ./posts/mendips/hero.jpg
+---
+```
+
+`image` is a path or a `data:` URI, loaded the way
+[`avatar`](https://colophonjs.dev/configuration/images/) is. It comes from the post rather than
+from config because config is the same for every post, and a different
+photograph on each one is the whole point of this template. A post with no
+`image` still renders, over whatever background is configured.
+
+The wash over the picture is not optional and is heavier than the one a
+[configured background image](https://colophonjs.dev/configuration/images/) gets, because here the
+words sit right on top of it. Text over an unshaded photograph is legible or
+not depending on what the photograph happens to hold, and a build cannot look
+at it.
+
+### `wordmark`
+
+The logo above a name and a tagline, for a homepage or a repository preview:
+the image for when the thing being shared is the project rather than a post.
+
+```yaml
+---
+meta_img_props:
+  template: wordmark
+  title: "@kensio/colophon"
+  subtitle: Social meta images from frontmatter
+---
+```
+
+The mark is part of the centred group rather than pinned to a corner, since
+here it is the subject. The name is always one line, shrunk as far as it takes
+and then cut, because a scoped package name is one long word and wrapping it
+breaks it mid-word.
+
+### `docs`
+
+A reference page: the trail that leads to it, a rule, then its title.
+
+```yaml
+---
+meta_img_props:
+  template: docs
+  breadcrumb: [Docs, Configuration, Fonts]
+  title: Fonts
+  subtitle: Load font files so a build renders the same image everywhere
+---
+```
+
+Docs pages share badly on their own: "Fonts" says nothing about which project's.
+`breadcrumb` may be a list or a single string, and a trail too wide for the
+image loses its leading segments to an ellipsis rather than its last ones,
+which are the ones that say where the page sits.
+
+### `event`
+
+A talk, a meetup or a workshop.
+
+```yaml
+---
+meta_img_props:
+  template: event
+  date: 14 November 2026
+  title: Rendering text without a browser
+  location: Bristol JS, The Old Fire Station
+---
+```
+
+The date is set on a plate in the accent colour rather than as another line of
+text, because it is the one thing a reader is scanning for. As with `article`,
+the date is drawn as written.
 
 ## Writing your own
 
@@ -353,6 +817,9 @@ Source: https://colophonjs.dev/code-template/
 The `code` template renders a syntax-highlighted snippet on a rounded panel over
 the background. The colours come from a real VS Code theme, by way of
 [Shiki](https://shiki.style).
+
+The [`terminal` template](https://colophonjs.dev/templates/) is this one with window chrome around
+it, so everything on this page applies to it too.
 
 Put the snippet in frontmatter and name its language:
 
@@ -466,6 +933,334 @@ This used to be a `code.charWidthRatio` setting. It has gone: see
 
 ---
 
+# Astro
+
+Source: https://colophonjs.dev/astro/
+
+Two halves: an integration that renders the images during the build, and a
+component that emits the tags for the route being rendered.
+
+## The integration
+
+```js
+// astro.config.mjs
+
+export default defineConfig({
+  site: "https://example.com",
+  integrations: [
+    colophon({
+      contentDir: "src/content",
+      config: {
+        colors: { brand: "#0d9488" },
+        footer: "example.com",
+        placement: { strategy: "public-dir", dir: "public/og", urlBase: "/og" },
+        manifest: "src/data/colophon.json",
+      },
+    }),
+  ],
+});
+```
+
+It takes the same options as [`generate`](https://colophonjs.dev/programmatic-use/), so `config` is
+an ordinary [Colophon config](https://colophonjs.dev/configuration/). Give it a
+[`manifest`](https://colophonjs.dev/configuration/manifest/) path, since that is what the component
+reads, and a [`placement`](https://colophonjs.dev/configuration/placement/) with a `urlBase`, since
+a tag needs an address rather than a path on disk.
+
+Nothing is imported from `astro`, so the integration does not pin you to a
+version of it.
+
+### When it runs
+
+On `astro:config:setup`, which is the one hook that fires for `astro dev` as
+well as `astro build`, and which runs before anything is rendered. Both matter:
+the manifest has to exist before a page that reads it is built, and a dev server
+should show the images the build will produce rather than the last build's.
+
+Running on every dev start sounds expensive and is not. The
+[rebuild stamps](https://colophonjs.dev/rebuilds/) mean a second run reads the content tree,
+compares digests and renders no images. It does rewrite the manifest, which is
+a small JSON file describing what is already there.
+
+A build that cannot render fails the Astro build rather than warning, because
+the alternative is a site shipping pages whose tags point at images that were
+never written.
+
+## The component
+
+```bash
+colophon eject astro
+```
+
+writes `src/components/ColophonMeta.astro`, which you use in your layout:
+
+```astro
+---
+
+---
+<html>
+  <head>
+    
+  </head>
+</html>
+```
+
+It is written into your site rather than imported from the package, because a
+`<head>` is something a site owns: adding `og:title`, changing the fallback, or
+dropping a tag should be an edit rather than a feature request. `colophon eject
+astro --force` replaces it.
+
+The component is thin, because the part worth testing is in the package:
+
+```astro
+const tags = metaTagsForPath(manifest as Manifest, Astro.url.pathname, {
+  baseUrl: Astro.site?.href,
+});
+```
+
+The cast is there because a JSON import types `version` as `number` rather than
+as the literal `1` the `Manifest` type asks for.
+
+## Finding the page
+
+`metaTagsForPath` maps the route to a manifest key, which is the one fiddly part
+of any integration. The manifest is keyed by slug, and which slug depends on the
+[`slugStrategy`](https://colophonjs.dev/configuration/sizes/#slug-strategies) the build used, so both
+are tried: the whole path first, then its last segment. A page at `/blog/hello`
+finds a `blog/hello` key under `route` and a `hello` key under `basename`,
+without being told which the build wrote.
+
+A route no key matches gets no tags, exactly as an unknown slug does. Not every
+page has a share image, and a layout cannot know which in advance.
+
+It is exported from `@kensio/colophon/meta` and is not Astro-specific: any
+framework that knows the path it is rendering can use it.
+
+## Content collections
+
+`contentDir` is a directory of files, so point it at the collection's directory
+under `src/content/`. Colophon walks the tree itself and reads the frontmatter
+with [its own options](https://colophonjs.dev/configuration/frontmatter/), rather than going through
+Astro's collection API, which keeps the integration a wrapper around `generate`
+and nothing more.
+
+---
+
+# The browser-safe core
+
+Source: https://colophonjs.dev/core/
+
+`buildSvg` is string building: props, a config and a size go in, an SVG document
+comes out. Everything in this package that needs Node is on one side of it or
+the other, so the middle can run in a browser, in a worker, or in a request
+handler.
+
+```js
+
+const config = resolveConfig({
+  colors: { brand: "#0d9488" },
+  fonts: [{ family: "Inter", data: fontBytes }],
+});
+
+const svg = await buildSvg(
+  { template: "card", title: "Rendered anywhere" },
+  config,
+  { width: 1200, height: 630 },
+);
+```
+
+It is the same code the root entry point runs. Imported from Node it behaves
+identically; imported into a bundle it swaps two modules, through
+`package.json`'s `browser` field, for versions that cannot touch a filesystem or
+a native binary.
+
+## Frontmatter, without a content tree
+
+Finding posts needs a filesystem, but understanding one does not. `extractProps`
+takes a parsed frontmatter object and returns the props a template renders from,
+so something handed a post rather than going and looking for one gets the same
+reading of `meta_img_props` that a build does:
+
+```js
+
+const props = extractProps(frontmatter, { defaultTemplate: "card" });
+```
+
+It returns `undefined` for a post that should not have an image, which is the
+same signal the [`props` mapper](https://colophonjs.dev/configuration/frontmatter/) gives. The rest
+of the content layer — walking a tree, reading files, deriving slugs — is on
+`@kensio/colophon/content` and stays in Node.
+
+## Problems, rather than an exception
+
+`resolveConfig` validates what it is given and throws, which is what a build
+wants: there is nowhere to put a problem but the end of the run. Somewhere with
+a place to put them, such as an editor rendering a config as it is typed, wants
+the list instead:
+
+```js
+
+for (const problem of configProblems(config)) {
+  // 'Unknown option "colors.forground". Did you mean "foreground"?'
+}
+```
+
+An empty array means the config is one `resolveConfig` will accept.
+
+## Two things it cannot do
+
+**Fonts and images have to be bytes.** There is no filesystem to resolve a path
+against, so `{ data }` works and `{ path }` does not. It says so when the config
+is resolved rather than later:
+
+```text
+fonts[0]: cannot read the font file at "./Inter.ttf" here, since there is no
+filesystem. Supply the bytes as "data" instead.
+```
+
+**There is no rasteriser.** resvg is a native module, so a browser build does
+not include it, and nothing here turns the SVG into pixels. Two ways on:
+
+- Take the SVG. Browsers draw it, and it is often what you wanted anyway.
+- Set [`config.rasteriser`](https://colophonjs.dev/configuration/rasteriser/) to something that runs
+  where you are. A wasm build of resvg is the obvious one, and that seam already
+  exists. It returns a `Uint8Array`, so a backend with no `Buffer` to hand back
+  is not a problem.
+
+Asking for pixels without one is an error rather than a blank image.
+
+## What it weighs
+
+About 10 MB bundled, of which 9.5 MB is [Shiki](https://shiki.style)'s grammars
+and themes. The templates, the layout toolkit and the measuring are the
+remaining half a megabyte.
+
+That is the price of the `code` template rendering any language in any theme. A
+build that does not need it, or needs two languages rather than every language,
+should use Shiki's own fine-grained bundle to narrow what is included.
+
+## Themes on a site that already highlights code
+
+Colophon resolves `code.theme` through a registry of its own rather than through
+Shiki's. That looks like duplication, so it is worth saying why it is there.
+
+A tool that highlights a site's own code blocks may narrow what Shiki bundles by
+rewriting Shiki's modules during the build. [Expressive
+Code](https://expressive-code.com), which a
+[Starlight](https://starlight.astro.build) site runs by default, does that under
+an option called `removeUnusedThemes`: it strips every theme from Shiki's theme
+module except the ones its own configuration names. The rewrite applies to the
+file rather than to whichever importer asked for it, so a second Shiki caller in
+the same build, which is what Colophon is on a site rendering images in the
+browser, was left with no themes at all and rejected every theme name, the
+default included.
+
+Owning the registry is what makes that irrelevant, and there is nothing to
+configure. Languages are still Shiki's, so a site that has narrowed those the
+same way through `shiki.bundledLangs` will find a language Colophon does not
+have falls back to plain text, which is what an unrecognised language has always
+done.
+
+Emitting [meta tags](https://colophonjs.dev/configuration/meta-tags/) needs none of this: the
+`@kensio/colophon/meta` subpath bundles to about 4 KB and depends on nothing.
+
+## Rendering on demand
+
+An endpoint that turns a query string into an image is an open image generator
+for anyone who finds it: they pick the words, your domain serves them, and your
+bill pays for it. Sign the parameters.
+
+```js
+
+// In the page, where the secret lives:
+const query = await signedQuery({ title: post.title }, SECRET);
+const url = `https://example.com/og?${query}`;
+```
+
+```js
+// In the handler:
+
+  buildSvg,
+  resolveConfig,
+  verifySignedQuery,
+} from "@kensio/colophon/core";
+
+export default async function handler(request) {
+  const { searchParams } = new URL(request.url);
+
+  if (!(await verifySignedQuery(searchParams, SECRET))) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  const svg = await buildSvg(
+    { template: "card", title: searchParams.get("title") ?? "" },
+    resolveConfig({ fonts: [{ family: "Inter", data: await fontBytes() }] }),
+    { width: 1200, height: 630 },
+  );
+
+  return new Response(svg, {
+    headers: {
+      "content-type": "image/svg+xml",
+      "cache-control": "public, max-age=31536000, immutable",
+    },
+  });
+}
+```
+
+The signature covers the parameters and nothing else, so anything that must not
+be tampered with has to be one of them: a template name or a size left outside
+is a template name or a size anyone can change. It is HMAC-SHA256 over the
+parameters sorted by name, so the order they arrive in does not matter, and the
+check is `crypto.subtle.verify` rather than a string comparison that would stop
+at the first wrong byte.
+
+A query string that repeats a parameter is refused rather than resolved.
+`URLSearchParams.get` takes the first value of a repeated key and building an
+object from the pairs takes the last, so appending a second copy of a key to a
+signed URL is how a check like this is got round. No honest signed URL repeats
+one.
+
+`signParams` and `verifyParams` are there for a URL shape of your own.
+
+### On a Cloudflare Worker
+
+The same handler, with the two things a worker does differently: the font is
+imported as bytes rather than read, and the secret comes from the environment.
+
+```js
+
+export default {
+  async fetch(request, env) {
+    const { searchParams } = new URL(request.url);
+
+    if (!(await verifySignedQuery(searchParams, env.COLOPHON_SECRET))) {
+      return new Response("Not found", { status: 404 });
+    }
+    // ...as above, with `fonts: [{ family: "Inter", data: new Uint8Array(fontData) }]`
+  },
+};
+```
+
+`wrangler.toml` needs a rule to import the font as bytes:
+
+```toml
+rules = [{ type = "Data", globs = ["**/*.ttf"] }]
+```
+
+Caching matters more here than in a build: a signed URL is stable, so the
+`immutable` header above means each image is rendered once per edge location
+rather than once per request.
+
+## Building images at build time
+
+None of this replaces the [CLI](https://colophonjs.dev/cli/) or
+[`generate`](https://colophonjs.dev/programmatic-use/). Rendering at build time is cheaper, cached
+by the [rebuild stamps](https://colophonjs.dev/rebuilds/), and produces files a CDN serves without
+running anything. On-demand rendering is for pages that do not exist until
+somebody asks for them.
+
+---
+
 # The layout toolkit
 
 Source: https://colophonjs.dev/layout/
@@ -560,6 +1355,35 @@ you can ask how wide something is:
 ```ts
 const widthOf = measureIn(measure, config.fontFamily, 700);
 const chipWidth = widthOf("release", 32) + 48;
+```
+
+`linesHeight` says how tall a block of lines will be before it is drawn, which
+is what a template needs when the words are one item in a group rather than the
+whole of it. The `wordmark` template uses it to `stack` a logo above a name:
+both have to be measured before either can be placed.
+
+```ts
+const [markSlot, textSlot] = stack(
+  [{ size: 240 }, { size: linesHeight(lines), gapBefore: 60 }],
+  content,
+);
+```
+
+`clampLine` is the other way to make text fit: it cuts one line to the width it
+has and marks the cut with an ellipsis. Shrinking is the better answer wherever
+there is room for it, which is what `blockLines` does. Reach for this where a
+line cannot shrink on its own without looking like a mistake, such as one item
+in a list set at the same size as the rest.
+
+```ts
+clampLine(change, content.width - indent, widthOf, 44);
+```
+
+And `stringList` reads a prop that may be a YAML sequence or a single value,
+which is what a hand-written `tags:` or `breadcrumb:` field turns out to be:
+
+```ts
+stringList(props["tags"]); // ["typescript", "testing"], or [] for nothing usable
 ```
 
 ## Boxes and panels
@@ -685,8 +1509,7 @@ Register it under `config.templates` as [Templates](https://colophonjs.dev/templ
 Source: https://colophonjs.dev/rebuilds/
 
 Every image Colophon writes carries a stamp: a hash of the props, the config and
-the output size it was rendered from, stored in the PNG itself as a `tEXt`
-chunk.
+the output size it was rendered from, stored inside the image file itself.
 
 On the next run, an image whose stamp still matches is left alone. One whose
 title, colours, template or size has moved on is rendered again. Correcting a
@@ -703,6 +1526,33 @@ written by an older version of the package.
 
 Note that the decision is made from the stamp, not from whether the file exists.
 An image that is present but stale is still re-rendered.
+
+## Where the stamp goes
+
+PNG is what the default rasteriser writes, and the other three are here for a
+[rasteriser](https://colophonjs.dev/configuration/rasteriser/) that produces something else.
+
+| Format | Where                                                  |
+| ------ | ------------------------------------------------------ |
+| PNG    | A `tEXt` chunk straight after the header.              |
+| JPEG   | A `COM` segment, after any `APPn` and before the scan. |
+| WebP   | A `CLPH` chunk appended to the RIFF file.              |
+| AVIF   | A `uuid` box appended to the file.                     |
+
+What a decoder gives back is unchanged in every case: the same pixels, at the
+same size, with the same colour information. Two of the four are appended rather
+than tucked in near the front,
+which is not a preference: a plain WebP declares no room for a chunk before its
+bitstream, and an AVIF locates its picture by an offset from the start of the
+file that inserting anything earlier would move.
+
+Reading a stamp back means reading 4KB from one end of a file or the other,
+never the whole image. Reading a whole image to compare a hash against it would
+cost about what rendering it again costs, and there would be no point skipping
+anything.
+
+A format that is none of these cannot be written at all, since an image with no
+stamp is one every later build renders again without ever saying why.
 
 ## What the stamp covers
 
@@ -721,12 +1571,21 @@ upgrading re-renders the tree once. Two things are deliberately left out:
 [Per-size overrides](https://colophonjs.dev/configuration/per-size-config/) are part of the stamp, so
 changing one re-renders that size and leaves the others alone.
 
+The things in the stamp that cannot change a pixel are
+[`compressionLevel`](https://colophonjs.dev/configuration/compression/) and the
+[output format settings](https://colophonjs.dev/configuration/formats/): `format`, `quality`,
+`maxBytes` and `emitSvg`. They change every byte of every file instead, and
+leaving them out would mean turning compression up, or dropping the quality, did
+nothing to the images already on disk.
+
 ## The gap, and the way out
 
 A custom template is covered by its own source code, hashed from
 `render.toString()`. That cannot see anything the source does not name, so a
 template that reads a closed-over value or loads a file itself can change
-without Colophon noticing.
+without Colophon noticing. A custom
+[rasteriser](https://colophonjs.dev/configuration/rasteriser/) is covered the same way, and has the
+same gap.
 
 `--force` re-renders everything, ignoring the stamps:
 
@@ -736,6 +1595,13 @@ colophon content --config colophon.config.ts --force
 
 `--overwrite` is an alias for the same flag, and `generate` takes an
 `overwrite` option that does the same thing.
+
+To see which images the stamps make out of date without rendering any of them,
+ask for a [dry run](https://colophonjs.dev/cli/#dry-runs):
+
+```bash
+colophon content --config colophon.config.ts --dry-run
+```
 
 ## Hashed filenames
 
@@ -775,12 +1641,14 @@ const images = await renderMetaImages(
 
 for (const image of images) {
   // image.name is the output-size name ("og", "square", and so on).
-  await writeFile(`social-${image.name}.png`, image.png);
+  await writeFile(`social-${image.name}.png`, image.bytes);
 }
 ```
 
 One image is returned per configured output size. Each carries its `name`,
-`dimensions`, the source `svg` and the encoded `png` bytes.
+`dimensions`, the source `svg` and the encoded `bytes`, in whatever
+[`format`](https://colophonjs.dev/configuration/formats/) the config asked for. `extensionFor` is
+what a build names its own files with, if you would rather not hardcode `.png`.
 
 This is the right entry point for rendering an image from data that is not a
 markdown file at all, such as a database row or an API response.
@@ -796,6 +1664,7 @@ await generate({
   contentDir: "content",
   config: { colors: { brand: "#2563eb" } },
   overwrite: false,
+  dryRun: false, // work out what would change and write nothing
   concurrency: 4, // defaults to one per available CPU
   onResult: (result) =>
     // result.url is where it is served, when the placement knows.
@@ -807,6 +1676,11 @@ await generate({
 because their [stamp](https://colophonjs.dev/rebuilds/) still matched. A result for an
 [extra image](https://colophonjs.dev/configuration/extra-images/) has `contentPath` set to
 `undefined`, since there is no post behind it.
+
+Under `dryRun` the results say what a real build would have done: `skipped` is
+`true` for an image whose stamp still matches, and `false` for one that would be
+rendered. Nothing is written, not even the manifest, and every check a build
+makes still runs. It is what the CLI's [`--dry-run`](https://colophonjs.dev/cli/) is.
 
 ### Options that are not config
 
@@ -837,13 +1711,23 @@ Import it from the `@kensio/colophon/content` subpath when frontmatter discovery
 is all you want. The root entry point pulls in the rasteriser and the syntax
 highlighter, and this subpath does not.
 
+`readContentFile` is the same work for one file, which is what
+[`colophon preview`](https://colophonjs.dev/cli/) uses. It takes the file, the content root its path
+and slug are relative to, and the same options, and returns `undefined` where
+the file asks for no image:
+
+```ts
+
+const file = await readContentFile("content/posts/hello.md", "content");
+```
+
 ## Other exports
 
 The pieces the above are built from are exported too, for anything that needs to
-work at a lower level: `buildSvg` and `renderSvgToPng` for the two halves of
+work at a lower level: `buildSvg` and `renderSvgToImage` for the two halves of
 rendering, `resolveConfig` and `resolveConfigForSize` for config, the
 [layout toolkit](https://colophonjs.dev/layout/) and `createMeasurer` for template authors, and
-`createStamper`, `readPngStamp` and `stampPng` for the rebuild stamps.
+`createStamper`, `readImageStamp` and `stampImage` for the rebuild stamps.
 
 [`metaTags`](https://colophonjs.dev/configuration/meta-tags/) has its own `@kensio/colophon/meta`
 subpath, which loads neither the rasteriser nor the highlighter. So does
@@ -860,10 +1744,56 @@ Source: https://colophonjs.dev/upgrading/
 
 Text is measured against the fonts a build actually renders with, instead of
 being estimated from a per-template fudge factor. Wrapping and fitting change as
-a result, and so do three pieces of the API.
+a result, and so do several pieces of the API.
 
 Every image re-renders on the first build after the upgrade, as it does on any
 upgrade: the package version is part of the [rebuild stamp](https://colophonjs.dev/rebuilds/).
+
+### `renderSvgToPng` is `renderSvgToImage`
+
+A build writes the format [`format`](https://colophonjs.dev/configuration/formats/) names, so the
+function that produces the bytes is named for an image rather than for one of
+the four things it may return.
+
+```ts
+// Before
+
+// After
+
+```
+
+The arguments and the return type are unchanged, and it still returns PNG unless
+`format` says otherwise.
+
+### `RenderedMetaImage.png` is `bytes`
+
+`renderMetaImages` returns the same objects with that one field renamed, for the
+same reason:
+
+```ts
+for (const image of await renderMetaImages(props, config)) {
+  await writeFile(`social-${image.name}.png`, image.bytes); // was image.png
+}
+```
+
+`extensionFor(config.format)` is what a build names its own files with, if the
+filename should follow the format too.
+
+### `stampPng` and `readPngStamp` are `stampImage` and `readImageStamp`
+
+The rebuild stamp goes into JPEG, WebP and AVIF as well as PNG now, so the two
+functions that write and read it are named for images rather than for one
+format. See [Rebuilds](https://colophonjs.dev/rebuilds/#where-the-stamp-goes).
+
+```ts
+// Before
+
+// After
+
+```
+
+Nothing else changes: the arguments, the return values and the stamps themselves
+are the same, so images already on disk are still recognised.
 
 ### Text is fitted to the space it has
 
@@ -975,25 +1905,31 @@ yourself.
 
 ## Options
 
-| Option        | Default                                       | Notes                                                             |
-| ------------- | --------------------------------------------- | ----------------------------------------------------------------- |
-| `theme`       | none                                          | A named look. See [Themes](https://colophonjs.dev/configuration/themes/).                            |
-| `colors`      | neutral indigo/pink                           | `brand`, `brandDark`, `brandWarm`, `foreground`.                  |
-| `background`  | gradient derived from `colors`                | Or a solid colour, a mesh, a gradient or a photo.                 |
-| `texture`     | none                                          | Grain, dots or ruled lines. See [Themes](https://colophonjs.dev/configuration/themes/).              |
-| `fonts`       | none                                          | Font files to render with. See [Fonts](https://colophonjs.dev/configuration/fonts/).                 |
-| `systemFonts` | `true` until `fonts` is set                   | Whether installed fonts are loaded too.                           |
-| `fontFamily`  | first font, else `Arial, ...`                 | Font stack for template text.                                     |
-| `footer`      | none                                          | Footer text. Omit the field for none.                             |
-| `badge`       | none                                          | Corner badge for `banner`, which a post may override or turn off. |
-| `code`        | `github-dark`, monospace stack                | Styling for [the code template](https://colophonjs.dev/code-template/).               |
-| `onWarning`   | `console.warn`                                | Where compromises are reported. See [Warnings](https://colophonjs.dev/configuration/warnings/).      |
-| `sizes`       | `og` and `square`                             | Named output sizes. See [Output sizes](https://colophonjs.dev/configuration/sizes/).                 |
-| `templates`   | `banner`, `card`, `code`                      | Merged over the built-ins. See [Templates](https://colophonjs.dev/templates/).        |
-| `content`     | `meta_img_props`, `.md` and `.markdown` files | How props are read. See [Frontmatter](https://colophonjs.dev/configuration/frontmatter/).            |
-| `placement`   | `beside-content`                              | Where images go and their URL. See [Placement](https://colophonjs.dev/configuration/placement/).     |
-| `manifest`    | none                                          | Path to write a JSON manifest to. See [Manifest](https://colophonjs.dev/configuration/manifest/).    |
-| `extra`       | none                                          | Images not tied to a post. See [One-off images](https://colophonjs.dev/configuration/extra-images/). |
+| Option             | Default                                       | Notes                                                               |
+| ------------------ | --------------------------------------------- | ------------------------------------------------------------------- |
+| `theme`            | none                                          | A named look. See [Themes](https://colophonjs.dev/configuration/themes/).                              |
+| `colors`           | neutral indigo/pink                           | `brand`, `brandDark`, `brandWarm`, `foreground`.                    |
+| `background`       | gradient derived from `colors`                | Or a solid colour, a mesh, a gradient or a photo.                   |
+| `texture`          | none                                          | Grain, dots or ruled lines. See [Themes](https://colophonjs.dev/configuration/themes/).                |
+| `fonts`            | none                                          | Font files to render with. See [Fonts](https://colophonjs.dev/configuration/fonts/).                   |
+| `systemFonts`      | `true` until `fonts` is set                   | Whether installed fonts are loaded too.                             |
+| `fontFamily`       | first font, else `Arial, ...`                 | Font stack for template text.                                       |
+| `footer`           | none                                          | Footer text. Omit the field for none.                               |
+| `badge`            | none                                          | Corner badge for `banner`, which a post may override or turn off.   |
+| `code`             | `github-dark`, monospace stack                | Styling for [the code template](https://colophonjs.dev/code-template/).                 |
+| `onWarning`        | `console.warn`                                | Where compromises are reported. See [Warnings](https://colophonjs.dev/configuration/warnings/).        |
+| `sizes`            | `og` and `square`                             | Named output sizes. See [Output sizes](https://colophonjs.dev/configuration/sizes/).                   |
+| `templates`        | the twelve built-ins                          | Merged over the built-ins. See [Templates](https://colophonjs.dev/templates/).          |
+| `rasteriser`       | resvg                                         | What turns SVG into bytes. See [Rasteriser](https://colophonjs.dev/configuration/rasteriser/).         |
+| `compressionLevel` | `9`                                           | How hard to compress the PNG. See [File size](https://colophonjs.dev/configuration/compression/).      |
+| `format`           | `png`                                         | Or `jpeg`, `webp`, `avif`. See [Output formats](https://colophonjs.dev/configuration/formats/).        |
+| `quality`          | `80`                                          | For the lossy formats. See [Output formats](https://colophonjs.dev/configuration/formats/).            |
+| `maxBytes`         | none                                          | A ceiling per image. See [Output formats](https://colophonjs.dev/configuration/formats/).              |
+| `emitSvg`          | `false`                                       | Write each image's SVG beside it. See [Output formats](https://colophonjs.dev/configuration/formats/). |
+| `content`          | `meta_img_props`, `.md` and `.markdown` files | How props are read. See [Frontmatter](https://colophonjs.dev/configuration/frontmatter/).              |
+| `placement`        | `beside-content`                              | Where images go and their URL. See [Placement](https://colophonjs.dev/configuration/placement/).       |
+| `manifest`         | none                                          | Path to write a JSON manifest to. See [Manifest](https://colophonjs.dev/configuration/manifest/).      |
+| `extra`            | none                                          | Images not tied to a post. See [One-off images](https://colophonjs.dev/configuration/extra-images/).   |
 
 ## Computing config at build time
 
@@ -1403,12 +2339,337 @@ theme a size asks for.
 
 ---
 
+# Rasteriser
+
+Source: https://colophonjs.dev/configuration/rasteriser/
+
+Colophon builds an SVG document per image and then turns it into bytes. That
+second step is resvg by default, and `rasteriser` is how you replace it.
+
+```ts
+
+const myRasteriser: Rasteriser = async (svg, dimensions, config) => {
+  // ...produce the image bytes for this document
+  return bytes;
+};
+
+export default defineConfig({ rasteriser: myRasteriser });
+```
+
+Most projects should not need this. resvg is the default because it is what
+makes the output reproducible: it takes explicit font files and can be told to
+ignore whatever is installed on the machine, which is what
+[Fonts](https://colophonjs.dev/configuration/fonts/) is built around.
+
+## When you would want another
+
+- **A wasm build**, so the same code runs at the edge or in a browser rather
+  than needing a native binary.
+- **Another encoder**, for something the default cannot do, including another
+  output format: see [what can be stamped](#it-has-to-produce-something-that-can-be-stamped)
+  below. Note that a PNG a rasteriser returns is compressed again afterwards, so
+  the compression resvg does not expose is already handled: see
+  [File size](https://colophonjs.dev/configuration/compression/).
+- **Post-processing**, where you want the default output and something done to
+  it, or the document changed before it is drawn.
+
+## What a rasteriser is given
+
+Three arguments: the finished SVG document, the dimensions to produce, and the
+resolved config for that image.
+
+The config is the whole resolved config rather than a shortlist, because which
+parts matter is the backend's business. The ones that usually do are the font
+settings:
+
+| Field         | What it is                                                     |
+| ------------- | -------------------------------------------------------------- |
+| `fonts`       | The configured fonts, each as an absolute `path` or as `data`. |
+| `systemFonts` | Whether installed fonts should be loaded as well.              |
+| `fontFamily`  | The family to fall back to for a stack that matches no font.   |
+
+A font may be configured as bytes rather than as a path. If your backend takes
+file paths, `fontFilePaths` writes any such font to a temp file and gives you
+the list:
+
+```ts
+
+const files = await fontFilePaths(config.fonts);
+```
+
+The SVG carries the same proportions as `dimensions`, so a backend that scales
+by width alone lands on the right height anyway. That is what the default does.
+
+## Wrapping the default
+
+`resvgRasteriser` is exported, so you can delegate to it:
+
+```ts
+
+export default defineConfig({
+  rasteriser: (svg, dimensions, config) =>
+    resvgRasteriser(watermark(svg), dimensions, config),
+});
+```
+
+## It has to produce something that can be stamped
+
+A build records a rebuild stamp inside each image it writes, which is how it
+knows next time whether anything changed. Bytes it cannot stamp are bytes it
+cannot write, so a rasteriser has to return one of the four containers a stamp
+goes into: PNG, JPEG, WebP or AVIF. Anything else fails with:
+
+```text
+Cannot stamp: unrecognised image format. The rebuild stamp goes inside the
+image, so a rasteriser has to produce one of PNG, JPEG, WebP, AVIF for a build
+to be able to skip it.
+```
+
+See [Rebuilds](https://colophonjs.dev/rebuilds/#where-the-stamp-goes) for where the stamp lands
+in each of them. What a decoder gives back is unchanged in every case: the same
+pixels, at the same size, with the same colour information.
+
+A backend does not have to produce the format a build writes:
+[`format`](https://colophonjs.dev/configuration/formats/) is what decides that, and whatever the rasteriser
+returns is encoded into it afterwards. Bytes already in the configured format
+are passed straight through, so a WebP backend under `format: "webp"` means one
+encoding rather than two.
+
+`renderMetaImages` has no limit at all here, since nothing stamps there and the
+bytes are handed straight back to you.
+
+## It changes every image
+
+A different backend draws every pixel differently, so the rasteriser is part of
+each image's rebuild stamp and changing it re-renders the whole tree. It is
+recorded by its source text, which cannot see a value the function closed over,
+so a rasteriser configured by something outside itself needs `--force` to pick
+that change up. See [Rebuilds](https://colophonjs.dev/rebuilds/).
+
+## It is not per-size
+
+Like `fonts`, a rasteriser is a shared build input rather than something an
+individual output size can override. See
+[Per-size config](https://colophonjs.dev/configuration/per-size-config/).
+
+---
+
+# Output formats
+
+Source: https://colophonjs.dev/configuration/formats/
+
+Colophon writes PNG unless you say otherwise. WebP, JPEG and AVIF are one
+setting away:
+
+```ts
+export default defineConfig({
+  format: "webp", // "png" (the default), "jpeg", "webp" or "avif"
+  quality: 80, // the default; 1 to 100, ignored by png
+});
+```
+
+The rasteriser still draws the picture, and the finished raster is encoded into
+the format you asked for. So this works with a custom
+[rasteriser](https://colophonjs.dev/configuration/rasteriser/) as well as with the default one.
+
+## What it saves
+
+The two-post site the numbers below come from, at four sizes each, with the
+default quality:
+
+| Format | Whole build | A 1200x630 landscape |
+| ------ | ----------- | -------------------- |
+| `png`  | 396KB       | 82KB                 |
+| `jpeg` | 188KB       | 30KB                 |
+| `webp` | 112KB       | 18KB                 |
+| `avif` | 92KB        | 16KB                 |
+
+WebP is the one to reach for. Every browser and every crawler that matters reads
+it, it is a quarter of the PNG, and it is no slower to write, because a lossy
+encoding is cheaper than the level-9 zlib pass a PNG gets. AVIF is smaller again
+and slower to encode, and it is the least widely read of the four.
+
+The pictures are the same to look at. At `80` the gradients these templates are
+mostly made of hold up; below about `50` they start to band.
+
+JPEG has no transparency, so a template that left any gets it flattened onto
+black. Every built-in template paints its background edge to edge, so this only
+comes up in a custom one.
+
+## The filenames follow
+
+An image is named after the format it holds, so a build writing WebP writes
+`my-post-og.webp`. `jpeg` is written `.jpg`, which is what the web settled on.
+
+Changing the format therefore renames every image, and the files already written
+are left where they are. Nothing here knows whether something is still serving
+them, and deleting a URL somebody has shared is not a decision to make on a
+project's behalf. Clear the output directory yourself if you want them gone.
+
+A [`custom` placement](https://colophonjs.dev/configuration/placement/#custom-placements) names its own files and
+is not told the format, so it is the one place the extension is yours to keep in
+step.
+
+## Capping the size
+
+X refuses an upload over 5MB, and a large AVIF is not what a card is for. A cap
+says so:
+
+```ts
+export default defineConfig({
+  format: "webp",
+  quality: 90,
+  maxBytes: 5_000_000,
+});
+```
+
+An image over the cap is encoded again ten quality points lower, and again, down
+to a floor of `30`. Stepping rather than searching for the best quality that
+fits is deliberate: each step is a whole encoding, and a search would cost
+several more of them for a difference nobody can see.
+
+An image that will not fit even at `30` is written anyway and reported through
+[`onWarning`](https://colophonjs.dev/configuration/warnings/):
+
+```text
+colophon: blog/post.md: Image is 31KB, over the 20KB maxBytes cap. Quality was
+stepped down to 30, which is as far as it goes before the picture stops being
+worth having. A smaller output size would do what quality no longer can.
+```
+
+That is a warning rather than an error because the image is still the right
+image. A build that renders nothing is a worse answer than one that renders
+something too big and says which post it was.
+
+PNG is lossless and has no quality to trade, so under `format: "png"` a cap only
+ever reports. [`compressionLevel`](https://colophonjs.dev/configuration/compression/) is the PNG equivalent, and it
+is already at its strongest by default.
+
+## Writing the SVG too
+
+```ts
+export default defineConfig({
+  emitSvg: true,
+});
+```
+
+Each image gets its source document beside it, under the same name with an
+`.svg` extension: `my-post-og.png` and `my-post-og.svg`. Under a
+[hashed placement](https://colophonjs.dev/configuration/placement/#content-hashed-filenames) the hash is kept, so
+`my-post-og.ecd0aab2.svg` sits next to its own image.
+
+It is what to hand to a vector editor, what to diff when a template changes, and
+what to serve to anything that would rather have vectors. It is not in the
+[manifest](https://colophonjs.dev/configuration/manifest/) and it carries no
+[rebuild stamp](https://colophonjs.dev/rebuilds/): the image is what a build tracks, and the
+document follows it.
+
+## They all change every image's stamp
+
+`format`, `quality`, `maxBytes` and `emitSvg` are each part of every image's
+rebuild stamp, so changing one re-renders the tree once. `emitSvg` is in for a
+version of the same reason: turning it on has to write the documents for images
+that are already on disk, and without it they would appear only as each post
+next changed.
+
+## They are not per-size
+
+Like [`fonts`](https://colophonjs.dev/configuration/fonts/) and the [rasteriser](https://colophonjs.dev/configuration/rasteriser/), these are shared
+build inputs rather than something an individual output size can override. They
+are about how an image is encoded rather than what it shows. See
+[Per-size config](https://colophonjs.dev/configuration/per-size-config/).
+
+---
+
+# File size
+
+Source: https://colophonjs.dev/configuration/compression/
+
+This page is about PNG, which is what a build writes unless
+[`format`](https://colophonjs.dev/configuration/formats/) says otherwise. Under WebP, JPEG or AVIF none of it
+applies: those have `quality` instead, and they are a good deal smaller than
+anything here can make a PNG.
+
+Colophon compresses each rendered PNG again before handing it over, at a level
+you can set:
+
+```ts
+export default defineConfig({
+  compressionLevel: 9, // the default; 0 to 9
+});
+```
+
+The images the rasteriser produces are encoded for speed rather than for size.
+Re-encoding them at zlib's strongest setting takes a 1200x1200 gradient from
+about 400KB to about 115KB, and the whole sample gallery in this repository from
+4.4MB to 1.7MB.
+
+## Nothing about the picture changes
+
+This is lossless in the strongest sense there is. The image data is inflated and
+deflated again with the pixels and the row filters untouched, so the file
+decodes to exactly the bytes it did before. Only how hard the deflater looked
+for matches is different.
+
+There is no quality setting because there is nothing to trade away. The tests
+decode an image before and after and compare the pixels, and compare the
+inflated scanlines byte for byte as well, so the row filters are covered along
+with them.
+
+## What it costs
+
+About 150ms per 1200x1200 image, on top of rendering it.
+
+That is paid once per image rather than once per build, because an image whose
+[rebuild stamp](https://colophonjs.dev/rebuilds/) still matches is not rendered at all. A site
+whose posts rarely change pays it on the posts that changed.
+
+If a large first build is the thing you care about, `6` is most of the saving
+for about a tenth of the time:
+
+| Level | Sample gallery | Time for the gallery |
+| ----- | -------------- | -------------------- |
+| `0`   | 4.4MB          | none                 |
+| `6`   | 2.1MB          | 0.3s                 |
+| `9`   | 1.7MB          | 3.1s                 |
+
+`0` writes the rasteriser's own bytes unchanged. So does any level when the
+bytes are not a PNG that can be taken apart and put back together, which covers
+both another format entirely and a PNG whose chunks do not read. Anything
+outside 0 to 9 is a config error rather than a value clamped into range.
+
+## It changes every image's stamp
+
+The level is part of each image's rebuild stamp, so turning it up re-renders
+the tree once. That is against the rule the stamp otherwise follows, which is
+that only what changes a pixel belongs in it: this changes no pixel but every
+byte, and without it the setting would appear to do nothing until each post
+next changed.
+
+## It applies wherever an image is produced
+
+`generate`, the CLI, `colophon preview` and `renderMetaImages` all go through
+the same step, so a script taking the bytes away to write them itself gets the
+same file a build would have written.
+
+It applies to a custom [rasteriser](https://colophonjs.dev/configuration/rasteriser/) too, as long as what that
+returns is a PNG. Anything else is handed back untouched.
+
+## It is not per-size
+
+Like `fonts`, this is a shared build input rather than something an individual
+output size can override: it is about how an image is encoded rather than what
+it shows. See [Per-size config](https://colophonjs.dev/configuration/per-size-config/).
+
+---
+
 # Logos, avatars and photographs
 
 Source: https://colophonjs.dev/configuration/images/
 
-Three places an image can go into a generated one: a logo in the corner, an
-author's photo beside the footer, and a photograph behind everything.
+Four places an image can go into a generated one: a logo in the corner, an
+author's photo beside the footer, the post's own photograph, and a picture
+behind everything.
 
 ```ts
 export default defineConfig({
@@ -1421,16 +2682,23 @@ export default defineConfig({
 });
 ```
 
-A post supplies its own author photo through the `avatar` prop:
+A post supplies its own pictures through the `avatar` and `image` props, both
+of which take a path or a `data:` URI:
 
 ```yaml
 ---
 meta_img_props:
-  template: card
+  template: photo
   title: Measuring text properly
   avatar: content/authors/hugh.jpg
+  image: content/posts/measuring/hero.jpg
 ---
 ```
+
+The difference between `image` and a background image is where it comes from
+rather than what it looks like. A background is config, so it is the same
+picture on every post; `image` belongs to the post, which is what the
+[`photo` template](https://colophonjs.dev/templates/) exists for.
 
 ## Where they come from
 
@@ -1471,17 +2739,29 @@ its slot, so supply a wide logo as PNG or SVG.
 
 That is the template's business, and the built-ins put them here:
 
-| Template | Logo                          | Avatar            |
-| -------- | ----------------------------- | ----------------- |
-| `banner` | Top right, opposite the badge | Before the footer |
-| `card`   | Top centre, above the title   | Before the footer |
-| `code`   | Not drawn                     | Not drawn         |
+| Template   | Logo                           | Avatar             |
+| ---------- | ------------------------------ | ------------------ |
+| `banner`   | Top right, opposite the badge  | Before the footer  |
+| `card`     | Top centre, above the title    | Before the footer  |
+| `code`     | Not drawn                      | Not drawn          |
+| `article`  | Top right, beside the tags     | Before the byline  |
+| `quote`    | Not drawn                      | Before the speaker |
+| `terminal` | Not drawn                      | Not drawn          |
+| `release`  | Top right                      | Before the footer  |
+| `stat`     | Top centre                     | Before the footer  |
+| `photo`    | Top right, over the photograph | Before the footer  |
+| `wordmark` | Centred, above the name        | Before the footer  |
+| `docs`     | Top right, beside the trail    | Before the footer  |
+| `event`    | Top centre                     | Before the footer  |
 
 The text moves down to make room for a logo, so a title never runs into it.
 
-A [template of your own](https://colophonjs.dev/templates/) is handed both on its context, as
-`logo` and `avatar`, already loaded, along with the `image` primitive from
-[the layout toolkit](https://colophonjs.dev/layout/) to draw them with.
+A [template of your own](https://colophonjs.dev/templates/) is handed all three on its context,
+as `logo`, `avatar` and `picture`, already loaded, along with the `image`
+primitive from [the layout toolkit](https://colophonjs.dev/layout/) to draw them with. The
+post's `image` prop arrives as `picture` because `image` is also the name of
+that primitive, and a template destructuring its context would shadow the
+function it needs to call.
 
 ## Photographs behind the text
 
@@ -1993,6 +3273,27 @@ Import from `@kensio/colophon/meta` rather than the package root. Emitting tags
 reads a JSON file, and a site's templates should not have to load a rasteriser
 and a syntax highlighter to write a `<head>`.
 
+## Tags for a route rather than a slug
+
+A framework that renders routes knows the path it is rendering and not the
+content file behind it. `metaTagsForPath` takes that path and finds the key:
+
+```ts
+
+const tags = metaTagsForPath(manifest, "/blog/my-post/", site);
+```
+
+It tries the whole path first and its last segment second, so it covers both
+[slug strategies](https://colophonjs.dev/configuration/sizes/#slug-strategies) without being told which the build
+used. A path no key matches gets no tags, as an unknown slug does. This is what
+[the Astro component](https://colophonjs.dev/astro/) is built on.
+
+## Sites that do not run JavaScript
+
+A Hugo site cannot call any of this from a Go template. `colophon eject hugo`
+writes a partial that does the same job in Go, reading the same manifest and
+emitting the same tags. See [the command line](https://colophonjs.dev/cli/#colophon-eject).
+
 ---
 
 # One-off images
@@ -2076,10 +3377,12 @@ project that named the output path of an extra already knows where it is.
 
 Source: https://colophonjs.dev/configuration/warnings/
 
-Some inputs cannot be honoured exactly. There are two cases: code too long to
-render legibly, described in [the code template](https://colophonjs.dev/code-template/), and a
-post whose `badge` prop is neither a badge nor `false`, described in
-[Templates](https://colophonjs.dev/templates/).
+Some inputs cannot be honoured exactly. There are three cases: a snippet too long
+to render legibly, described in [the code template](https://colophonjs.dev/code-template/) and
+reported the same way for a `terminal` session; a post whose `badge` prop is
+neither a badge nor `false`, described in [Templates](https://colophonjs.dev/templates/); and an
+image that will not fit its [`maxBytes`](https://colophonjs.dev/configuration/formats/#capping-the-size) cap even
+at the lowest quality.
 
 Colophon renders anyway and reports the compromise through `onWarning`, which
 defaults to `console.warn`. Pass your build's logger to route the messages

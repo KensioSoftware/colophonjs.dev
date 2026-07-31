@@ -2,7 +2,7 @@
 
 > Colophon generates social meta images, the Open Graph and share-card images a platform shows when someone posts a link to a site. It reads image props from a post's frontmatter and renders branded PNGs at the sizes the site needs. It is an npm package, @kensio/colophon, usable as a CLI or from Node.
 
-Every page below is also available as one file: https://colophonjs.dev/llms-full.txt (about 76KB)
+Every page below is also available as one file: https://colophonjs.dev/llms-full.txt (about 127KB)
 
 ## Start here
 
@@ -10,10 +10,13 @@ Every page below is also available as one file: https://colophonjs.dev/llms-full
 
 ## Guides
 
+- [The command line](https://colophonjs.dev/cli/): text colophon [contentDir] [options] Render the images for a content tree colophon init [contentDir] Write a starter config module colophon preview <file>...
 - [Templates](https://colophonjs.dev/templates/): A template is a layout. Frontmatter picks one by name, so different posts on the same site can produce different kinds of image from the same config.
 - [The code template](https://colophonjs.dev/code-template/): The code template renders a syntax-highlighted snippet on a rounded panel over the background. The colours come from a real VS Code theme, by way of Shiki.
+- [Astro](https://colophonjs.dev/astro/): Two halves: an integration that renders the images during the build, and a component that emits the tags for the route being rendered.
+- [The browser-safe core](https://colophonjs.dev/core/): buildSvg is string building: props, a config and a size go in, an SVG document comes out.
 - [The layout toolkit](https://colophonjs.dev/layout/): Writing a template means returning a string of SVG.
-- [Rebuilds](https://colophonjs.dev/rebuilds/): Every image Colophon writes carries a stamp: a hash of the props, the config and the output size it was rendered from, stored in the PNG itself as a tEXt chunk.
+- [Rebuilds](https://colophonjs.dev/rebuilds/): Every image Colophon writes carries a stamp: a hash of the props, the config and the output size it was rendered from, stored inside the image file itself.
 - [Programmatic use](https://colophonjs.dev/programmatic-use/): The CLI is a thin wrapper over two entry points. Use them directly when a project needs to drive generation itself.
 - [Upgrading](https://colophonjs.dev/upgrading/): Text is measured against the fonts a build actually renders with, instead of being estimated from a per-template fudge factor.
 
@@ -23,7 +26,10 @@ Every page below is also available as one file: https://colophonjs.dev/llms-full
 - [Frontmatter](https://colophonjs.dev/configuration/frontmatter/): By default Colophon reads a meta_img_props object from a post's frontmatter, takes the template name from a template field within it, and reads the post slug...
 - [Fonts](https://colophonjs.dev/configuration/fonts/): By default Colophon names font families and hopes the machine has them.
 - [Themes and background treatments](https://colophonjs.dev/configuration/themes/): A theme is a named look: a palette, a background and, for some of them, a texture over it. It is the shortest config there is.
-- [Logos, avatars and photographs](https://colophonjs.dev/configuration/images/): Three places an image can go into a generated one: a logo in the corner, an author's photo beside the footer, and a photograph behind everything.
+- [Rasteriser](https://colophonjs.dev/configuration/rasteriser/): Colophon builds an SVG document per image and then turns it into bytes. That second step is resvg by default, and rasteriser is how you replace it.
+- [Output formats](https://colophonjs.dev/configuration/formats/): Colophon writes PNG unless you say otherwise.
+- [File size](https://colophonjs.dev/configuration/compression/): This page is about PNG, which is what a build writes unless format says otherwise.
+- [Logos, avatars and photographs](https://colophonjs.dev/configuration/images/): Four places an image can go into a generated one: a logo in the corner, an author's photo beside the footer, the post's own photograph, and a picture behind...
 - [Output sizes and filenames](https://colophonjs.dev/configuration/sizes/): Each output size is a named { name, width, height }.
 - [Per-size config](https://colophonjs.dev/configuration/per-size-config/): Some settings only make sense per size. code.minFontScale is the clearest case: a 1:1 square and a 1.91:1 landscape have very different amounts of vertical...
 - [Placement](https://colophonjs.dev/configuration/placement/): An output path says where the bytes go and nothing about how anyone reaches them, so every site ends up rebuilding that mapping in its own templates, from...
@@ -34,5 +40,6 @@ Every page below is also available as one file: https://colophonjs.dev/llms-full
 
 ## Optional
 
+- [Playground](https://colophonjs.dev/playground/): build a config and render an image in the browser
 - [npm package](https://www.npmjs.com/package/@kensio/colophon): install and version history
 - [Source repository](https://github.com/KensioSoftware/colophon): source, issues and the docs these pages are built from

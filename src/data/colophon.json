@@ -1,6 +1,28 @@
 {
   "version": 1,
   "pages": {
+    "astro": {
+      "images": {
+        "og": {
+          "url": "/og/astro-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Astro"
+    },
+    "cli": {
+      "images": {
+        "og": {
+          "url": "/og/cli-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "The command line"
+    },
     "code-template": {
       "images": {
         "og": {
@@ -23,6 +45,17 @@
       "widest": "og",
       "alt": "Configuration"
     },
+    "configuration/compression": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/compression-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "File size"
+    },
     "configuration/extra-images": {
       "images": {
         "og": {
@@ -44,6 +77,17 @@
       },
       "widest": "og",
       "alt": "Fonts"
+    },
+    "configuration/formats": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/formats-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Output formats"
     },
     "configuration/frontmatter": {
       "images": {
@@ -111,6 +155,17 @@
       "widest": "og",
       "alt": "Placement"
     },
+    "configuration/rasteriser": {
+      "images": {
+        "og": {
+          "url": "/og/configuration/rasteriser-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Rasteriser"
+    },
     "configuration/sizes": {
       "images": {
         "og": {
@@ -144,6 +199,17 @@
       "widest": "og",
       "alt": "Warnings"
     },
+    "core": {
+      "images": {
+        "og": {
+          "url": "/og/core-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "The browser-safe core"
+    },
     "getting-started": {
       "images": {
         "og": {
@@ -176,6 +242,17 @@
       },
       "widest": "og",
       "alt": "The layout toolkit"
+    },
+    "playground": {
+      "images": {
+        "og": {
+          "url": "/og/playground-og.png",
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "widest": "og",
+      "alt": "Playground"
     },
     "programmatic-use": {
       "images": {

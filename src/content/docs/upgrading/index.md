@@ -8,10 +8,58 @@ editUrl: "https://github.com/KensioSoftware/colophon/blob/main/docs/upgrading/RE
 
 Text is measured against the fonts a build actually renders with, instead of
 being estimated from a per-template fudge factor. Wrapping and fitting change as
-a result, and so do three pieces of the API.
+a result, and so do several pieces of the API.
 
 Every image re-renders on the first build after the upgrade, as it does on any
 upgrade: the package version is part of the [rebuild stamp](../rebuilds/).
+
+### `renderSvgToPng` is `renderSvgToImage`
+
+A build writes the format [`format`](../configuration/formats/) names, so the
+function that produces the bytes is named for an image rather than for one of
+the four things it may return.
+
+```ts
+// Before
+import { renderSvgToPng } from "@kensio/colophon";
+
+// After
+import { renderSvgToImage } from "@kensio/colophon";
+```
+
+The arguments and the return type are unchanged, and it still returns PNG unless
+`format` says otherwise.
+
+### `RenderedMetaImage.png` is `bytes`
+
+`renderMetaImages` returns the same objects with that one field renamed, for the
+same reason:
+
+```ts
+for (const image of await renderMetaImages(props, config)) {
+  await writeFile(`social-${image.name}.png`, image.bytes); // was image.png
+}
+```
+
+`extensionFor(config.format)` is what a build names its own files with, if the
+filename should follow the format too.
+
+### `stampPng` and `readPngStamp` are `stampImage` and `readImageStamp`
+
+The rebuild stamp goes into JPEG, WebP and AVIF as well as PNG now, so the two
+functions that write and read it are named for images rather than for one
+format. See [Rebuilds](../rebuilds/#where-the-stamp-goes).
+
+```ts
+// Before
+import { readPngStamp, stampPng } from "@kensio/colophon";
+
+// After
+import { readImageStamp, stampImage } from "@kensio/colophon";
+```
+
+Nothing else changes: the arguments, the return values and the stamps themselves
+are the same, so images already on disk are still recognised.
 
 ### Text is fitted to the space it has
 

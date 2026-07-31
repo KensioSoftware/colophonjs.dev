@@ -1,0 +1,52 @@
+---
+title: Playground
+description: Build a Colophon config and a post's frontmatter in the browser, and watch the social meta image render as you type.
+template: splash
+editUrl: false
+---
+
+import Playground from "../../playground/Playground.tsx";
+import "../../playground/playground.css";
+
+<Playground client:only="preact" />
+
+<details>
+<summary>How the playground differs from a build</summary>
+
+It runs entirely in your browser, so your config and frontmatter stay on your
+machine. **Copy link** puts the whole state in the URL, so a link is enough to
+show someone what you made, or to ask why it is doing something unexpected.
+
+The config is JSON here. A project writes
+[`colophon.config.ts`](/configuration/) instead, but every option that shapes
+an image is the same either way, because `resolveConfig` takes a plain object.
+The options that have to be JavaScript all concern finding posts and writing
+files, which the playground leaves alone.
+
+That has one consequence worth knowing about. Most projects map a post's
+existing `title` and `description` onto image props with the `content.props`
+function. It is JavaScript, so the playground cannot run it. Put the props in
+`meta_img_props` instead, as the sample does.
+
+The browser has no filesystem, which accounts for two more differences. Both
+are described in [the browser-safe core](/core/):
+
+- **Fonts come from your machine.** A build reads a font file and renders with
+  exactly that. Here the image uses whatever your machine has for the font
+  family the config names. A build does the same when you give it no font file.
+- **PNG export goes through a canvas.** The preview is the SVG itself, and
+  **Download PNG** draws that SVG to a canvas. A build renders through resvg,
+  and can also write [WebP, JPEG and AVIF](/configuration/formats/).
+
+Ten of the twelve templates render here. The [`code`](/code-template/) and
+`terminal` templates highlight with Shiki, whose themes are unavailable in a
+browser build, so those two work only in a real build.
+
+Layout is the same either way. Colophon measures the text and positions it
+itself, so what you see here is where the words will be.
+
+</details>
+
+When you have something you like, [install the package](/getting-started/) and
+paste the config in. Images you make here are yours to use: Colophon is
+[Apache 2.0](https://github.com/KensioSoftware/colophon/blob/main/LICENSE).
