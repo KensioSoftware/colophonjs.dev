@@ -24,7 +24,7 @@
     "@codemirror/lint": "^6.9.7",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.7",
-    "@kensio/colophon": "^2.7.0",
+    "@kensio/colophon": "^2.9.0",
     "@lezer/highlight": "^1.2.3",
     "astro": "^7.0.9",
     "preact": "^10.29.7",

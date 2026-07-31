@@ -13,9 +13,15 @@ import "../../playground/playground.css";
 <details>
 <summary>How the playground differs from a build</summary>
 
+Each tab is a [template](/templates/) with a config and a post to match, and
+each keeps its own edits, so you can look at what another template does and come
+back to find your work as you left it. **Reset this tab** appears once you have
+changed something and puts the original back.
+
 It runs entirely in your browser, so your config and frontmatter stay on your
-machine. **Copy link** puts the whole state in the URL, so a link is enough to
-show someone what you made, or to ask why it is doing something unexpected.
+machine. **Copy link** puts the open tab and everything in it in the URL, so a
+link is enough to show someone what you made, or to ask why it is doing
+something unexpected.
 
 The config is JSON here. A project writes
 [`colophon.config.ts`](/configuration/) instead, but every option that shapes
@@ -23,10 +29,12 @@ an image is the same either way, because `resolveConfig` takes a plain object.
 The options that have to be JavaScript all concern finding posts and writing
 files, which the playground leaves alone.
 
-That has one consequence worth knowing about. Most projects map a post's
-existing `title` and `description` onto image props with the `content.props`
-function. It is JavaScript, so the playground cannot run it. Put the props in
-`meta_img_props` instead, as the sample does.
+One consequence is worth knowing about. A post's own `title` is used where the
+props block sets none, so that much needs nothing said twice. Anything else a
+project maps from its existing frontmatter, such as a `description` becoming
+the subtitle, goes through the [`content.props`](/configuration/frontmatter/)
+function. That is JavaScript, so the playground cannot run it: put those fields
+in `meta_img_props` here, as the samples do.
 
 The browser has no filesystem, which accounts for two more differences. Both
 are described in [the browser-safe core](/core/):
@@ -37,10 +45,6 @@ are described in [the browser-safe core](/core/):
 - **PNG export goes through a canvas.** The preview is the SVG itself, and
   **Download PNG** draws that SVG to a canvas. A build renders through resvg,
   and can also write [WebP, JPEG and AVIF](/configuration/formats/).
-
-Ten of the twelve templates render here. The [`code`](/code-template/) and
-`terminal` templates highlight with Shiki, whose themes are unavailable in a
-browser build, so those two work only in a real build.
 
 Layout is the same either way. Colophon measures the text and positions it
 itself, so what you see here is where the words will be.

@@ -55,6 +55,70 @@
     grid-template-columns: minmax(22rem, 2fr) minmax(0, 3fr);
     align-items: start;
   }
+
+  /* The tabs and the note under them sit above both columns. */
+  .pg-tabs,
+  .pg-note {
+    grid-column: 1 / -1;
+  }
+}
+
+/*
+ * One tab per template. They wrap rather than scroll: there are twelve, the
+ * names are short, and a row that scrolls hides the ones at the end from
+ * someone who does not know they are there.
+ */
+.pg-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: -0.75rem;
+}
+
+.pg-tab {
+  height: var(--pg-control-height);
+  padding: 0 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--sl-color-gray-2);
+  font-size: var(--sl-text-sm);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pg-tab:hover {
+  background: var(--sl-color-gray-6);
+  color: var(--sl-color-white);
+}
+
+.pg-tab-on,
+.pg-tab-on:hover {
+  border-color: var(--sl-color-accent);
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-white);
+}
+
+.pg-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin: 0;
+  color: var(--sl-color-gray-3);
+  font-size: var(--sl-text-xs);
+}
+
+/* Only shown once a tab has been edited, so it never offers to undo nothing. */
+.pg-reset {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--sl-color-text-accent);
+  font-size: var(--sl-text-xs);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .pg-inputs {

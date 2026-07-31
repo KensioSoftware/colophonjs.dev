@@ -44,13 +44,16 @@ export default defineConfig({
     // key `Head.astro` looks up.
     slugStrategy: "route",
     // Every page has a title and a description. A page without a title has
-    // nothing to put on a card.
+    // nothing to put on a card, and returning undefined is what skips it.
+    //
+    // The title itself is not mapped: a post's own is used where the props
+    // block sets none, and no page here declares a props block at all. Only
+    // the subtitle needs saying, since it comes from `description`.
     props: (frontmatter) => {
-      const title = text(frontmatter.title);
-      if (title === undefined) return undefined;
+      if (text(frontmatter.title) === undefined) return undefined;
 
       const subtitle = text(frontmatter.description);
-      return { title, ...(subtitle === undefined ? {} : { subtitle }) };
+      return subtitle === undefined ? {} : { subtitle };
     },
   },
 

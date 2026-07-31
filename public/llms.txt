@@ -2,7 +2,7 @@
 
 > Colophon generates social meta images, the Open Graph and share-card images a platform shows when someone posts a link to a site. It reads image props from a post's frontmatter and renders branded PNGs at the sizes the site needs. It is an npm package, @kensio/colophon, usable as a CLI or from Node.
 
-Every page below is also available as one file: https://colophonjs.dev/llms-full.txt (about 127KB)
+Every page below is also available as one file: https://colophonjs.dev/llms-full.txt (about 128KB)
 
 ## Start here
 

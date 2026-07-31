@@ -172,26 +172,6 @@ function explainResolveFailure(message: string): string {
 }
 
 /**
- * Explain why the two templates that highlight code fail here, since the
- * message they fail with does not.
- *
- * Shiki resolves a theme name against a registry of every theme it bundles.
- * That registry is dropped when Shiki is bundled for a browser, so every theme
- * name looks unknown, including the default that the config never set. The
- * languages registry survives, which is why this affects themes only. Left
- * alone, someone who never mentioned github-dark is told that github-dark is
- * an unknown theme.
- */
-function explainRenderFailure(message: string): string {
-  return /Unknown code theme/i.test(message)
-    ? "The code and terminal templates cannot render in the playground yet: " +
-        "they highlight with Shiki, whose themes are not available in a " +
-        "browser build. Both work in a real build, and the other ten " +
-        "templates work here."
-    : message;
-}
-
-/**
  * Render one image, or say why not.
  *
  * Both inputs are parsed before either is used, so someone with a typo in each
@@ -288,12 +268,7 @@ export async function render(
   } catch (error) {
     return {
       ok: false,
-      failures: [
-        {
-          field: undefined,
-          message: explainRenderFailure(parseMessage(error)),
-        },
-      ],
+      failures: [{ field: undefined, message: parseMessage(error) }],
     };
   }
 }

@@ -25,36 +25,33 @@ import {
   svgDataUri,
   toPng,
 } from "./export.js";
+import { defaultPreset, presetById, presets } from "./presets.js";
 import { render, type Failure, type Outcome } from "./render.js";
 import { decodeState, encodeState } from "./share.js";
 
-const defaultConfig = `{
-  "theme": "midnight",
-  "colors": {
-    "brand": "#4f46e5",
-    "brandWarm": "#db2777"
-  },
-  "badge": { "text": "blog" },
-  "footer": "example.com"
-}`;
-
-/**
- * The props go in `meta_img_props` rather than being mapped from the `title`
- * and `description` a post already has, which is what most projects do. That
- * mapping is `content.props`, and it is a function, so it is one of the few
- * things a JSON config here cannot say. See the note under the playground.
- */
-const defaultFrontmatter = `---
-title: The unreasonable effectiveness of doing it twice
-description: Why the second attempt is where the design shows up.
-meta_img_props:
-  template: banner
-  title: The unreasonable effectiveness of doing it twice
-  subtitle: Why the second attempt is where the design shows up
----`;
-
 /** How long to wait after a keystroke before rendering again. */
 const debounceMs = 200;
+
+/**
+ * What one tab holds. Each preset keeps its own, so going to look at what the
+ * `quote` template does and coming back finds the banner as it was left.
+ */
+type Draft = {
+  readonly config: string;
+  readonly frontmatter: string;
+  readonly size?: string;
+};
+
+type Drafts = Readonly<Record<string, Draft>>;
+
+function draftsFromPresets(): Drafts {
+  return Object.fromEntries(
+    presets.map((preset) => [
+      preset.id,
+      { config: preset.config, frontmatter: preset.frontmatter },
+    ]),
+  );
+}
 
 type Status =
   { readonly message: string; readonly tone: "ok" | "bad" } | undefined;
@@ -75,12 +72,19 @@ function useDebounced<T>(value: T, delay: number): T {
 }
 
 export default function Playground() {
-  const [configText, setConfigText] = useState(defaultConfig);
-  const [frontmatterText, setFrontmatterText] = useState(defaultFrontmatter);
-  const [sizeName, setSizeName] = useState<string | undefined>(undefined);
+  const [drafts, setDrafts] = useState<Drafts>(draftsFromPresets);
+  const [activeId, setActiveId] = useState(defaultPreset.id);
   const [outcome, setOutcome] = useState<Outcome | undefined>(undefined);
   const [status, setStatus] = useState<Status>(undefined);
   const [ready, setReady] = useState(false);
+
+  const preset = presetById(activeId) ?? defaultPreset;
+  const draft = drafts[activeId] ?? {
+    config: preset.config,
+    frontmatter: preset.frontmatter,
+  };
+  const { config: configText, frontmatter: frontmatterText } = draft;
+  const sizeName = draft.size;
 
   // The last image that rendered, kept while a later keystroke is failing, so
   // the preview does not blink out to nothing between a `{` and its `}`.
@@ -89,19 +93,39 @@ export default function Playground() {
   const debouncedConfig = useDebounced(configText, debounceMs);
   const debouncedFrontmatter = useDebounced(frontmatterText, debounceMs);
 
+  const editDraft = useCallback(
+    (id: string, change: Partial<Draft>) => {
+      setDrafts((current) => {
+        const existing = current[id];
+        if (existing === undefined) {
+          return current;
+        }
+        return { ...current, [id]: { ...existing, ...change } };
+      });
+    },
+    [setDrafts],
+  );
+
   // A shared link is read once, before the first render, so that opening one
-  // shows what was shared rather than the defaults for a frame first.
+  // shows what was shared rather than a preset for a frame first.
   useEffect(() => {
     void (async () => {
       const shared = await decodeState(window.location.search);
       if (shared !== undefined) {
-        setConfigText(shared.config);
-        setFrontmatterText(shared.frontmatter);
-        setSizeName(shared.size);
+        // A link from a later version may name a preset this one has never
+        // heard of. The text it carries is still worth showing, so it goes on
+        // the default tab rather than being dropped.
+        const target = presetById(shared.preset) ?? defaultPreset;
+        setActiveId(target.id);
+        editDraft(target.id, {
+          config: shared.config,
+          frontmatter: shared.frontmatter,
+          size: shared.size,
+        });
       }
       setReady(true);
     })();
-  }, []);
+  }, [editDraft]);
 
   useEffect(() => {
     if (!ready) {
@@ -195,6 +219,7 @@ export default function Playground() {
       const query = await encodeState({
         config: configText,
         frontmatter: frontmatterText,
+        preset: activeId,
         ...(sizeName === undefined ? {} : { size: sizeName }),
       });
       const url = `${window.location.origin}${window.location.pathname}?${query}`;
@@ -210,7 +235,40 @@ export default function Playground() {
         announce("The link is in the address bar.", "ok");
       }
     })();
-  }, [configText, frontmatterText, sizeName, announce]);
+  }, [configText, frontmatterText, sizeName, activeId, announce]);
+
+  /**
+   * Switching tabs drops the image on screen rather than dimming it.
+   * `lastGood` exists so a half-typed config keeps showing the last good
+   * render of the same thing, and a banner left behind while the quote
+   * template renders is not that.
+   */
+  const onSelectPreset = useCallback(
+    (id: string) => {
+      // Clicking the tab already open would otherwise clear the image and
+      // leave nothing to bring it back: the render only reruns when the text
+      // it renders from changes, and selecting the same tab changes nothing.
+      if (id === activeId) {
+        return;
+      }
+
+      lastGood.current = undefined;
+      setOutcome(undefined);
+      setActiveId(id);
+    },
+    [activeId],
+  );
+
+  const onReset = useCallback(() => {
+    editDraft(preset.id, {
+      config: preset.config,
+      frontmatter: preset.frontmatter,
+      size: undefined,
+    });
+  }, [preset, editDraft]);
+
+  const edited =
+    draft.config !== preset.config || draft.frontmatter !== preset.frontmatter;
 
   const sizes = shown?.ok === true ? shown.sizes : [];
   const warnings = shown?.ok === true ? shown.rendered.warnings : [];
@@ -221,13 +279,48 @@ export default function Playground() {
   // than the one before it.
   return (
     <div class="pg not-content">
-      <div class="pg-inputs">
+      <div class="pg-tabs" role="tablist" aria-label="Template">
+        {presets.map((each) => (
+          <button
+            key={each.id}
+            id={`pg-tab-${each.id}`}
+            type="button"
+            role="tab"
+            class={`pg-tab${each.id === activeId ? " pg-tab-on" : ""}`}
+            aria-selected={each.id === activeId}
+            aria-controls="pg-panel"
+            onClick={() => {
+              onSelectPreset(each.id);
+            }}
+          >
+            {each.label}
+          </button>
+        ))}
+      </div>
+
+      <p class="pg-note">
+        <span>{preset.note}</span>
+        {edited && (
+          <button type="button" class="pg-reset" onClick={onReset}>
+            Reset this tab
+          </button>
+        )}
+      </p>
+
+      <div
+        class="pg-inputs"
+        id="pg-panel"
+        role="tabpanel"
+        aria-labelledby={`pg-tab-${activeId}`}
+      >
         <CodeEditor
           label="Config"
           hint="JSON, the same options a colophon.config.ts sets"
           language="json"
           value={configText}
-          onInput={setConfigText}
+          onInput={(next) => {
+            editDraft(activeId, { config: next });
+          }}
           failures={failuresFor("config")}
         />
         <CodeEditor
@@ -235,7 +328,9 @@ export default function Playground() {
           hint="YAML, exactly as it appears at the top of a post"
           language="yaml"
           value={frontmatterText}
-          onInput={setFrontmatterText}
+          onInput={(next) => {
+            editDraft(activeId, { frontmatter: next });
+          }}
           failures={failuresFor("frontmatter")}
         />
       </div>
@@ -254,7 +349,7 @@ export default function Playground() {
                     class={`pg-size${active ? " pg-size-on" : ""}`}
                     aria-pressed={active}
                     onClick={() => {
-                      setSizeName(size.name);
+                      editDraft(activeId, { size: size.name });
                     }}
                   >
                     {size.name}

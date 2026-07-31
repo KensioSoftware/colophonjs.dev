@@ -16,6 +16,12 @@ export type ShareState = {
   readonly config: string;
   readonly frontmatter: string;
   readonly size?: string;
+  /**
+   * Which preset tab was open. Only the open one is shared, since a link is
+   * meant to show one image. A link naming a preset this version has dropped
+   * opens on the default tab with the shared text still in it.
+   */
+  readonly preset?: string;
 };
 
 const param = "s";
