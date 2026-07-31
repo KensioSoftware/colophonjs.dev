@@ -55,8 +55,8 @@ importers:
         version: 2.9.0
     devDependencies:
       '@kensio/yulin':
-        specifier: ^0.41.0
-        version: 0.41.0
+        specifier: ^0.44.0
+        version: 0.44.0
       aws-cdk:
         specifier: ^2.1132.1
         version: 2.1133.0
@@ -763,12 +763,12 @@ packages:
     engines: {node: '>=22.2.0'}
     hasBin: true
 
-  '@kensio/part-factory@1.7.0':
-    resolution: {integrity: sha512-LaRxufN/R3Up+YjwxY/zx0yyEaTOiPddPwvyL1sYK6UrkfuXTb++263q9s511gM9vIsNW3Ns/UDqCga19glbIQ==}
+  '@kensio/part-factory@1.9.0':
+    resolution: {integrity: sha512-vaVPwq9uUVvxAsr4K7l/Ux85+SpYFOXjzG+LcV/RYbrCON++mTy2wotwAPgVIzsH5LK3G/m2rM/qj8O7PZwYnQ==}
     engines: {node: '>=22.0.0'}
 
-  '@kensio/yulin@0.41.0':
-    resolution: {integrity: sha512-qbd7Pv0aeNyT6ssRN2kU8e5aLHndJH/OJekKNKG5vaEzHslOCCq/jUrz4pWPemee7DcD3dFL+u9x0wnjZIuGWw==}
+  '@kensio/yulin@0.44.0':
+    resolution: {integrity: sha512-jazNMaz6V2UldswIG3ni2NZy5KGzMkzCNA+xoTRFKKebrQlPOKuEIpEQadO4CJiInr0PjO0kEIIDkBlG6fuHUA==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       eslint: ^10.4.1
@@ -3338,14 +3338,14 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@kensio/part-factory@1.7.0':
+  '@kensio/part-factory@1.9.0':
     dependencies:
       lodash: 4.18.1
 
-  '@kensio/yulin@0.41.0':
+  '@kensio/yulin@0.44.0':
     dependencies:
       '@faker-js/faker': 10.5.0
-      '@kensio/part-factory': 1.7.0
+      '@kensio/part-factory': 1.9.0
       lodash-es: 4.18.1
 
   '@lezer/common@1.5.2': {}
