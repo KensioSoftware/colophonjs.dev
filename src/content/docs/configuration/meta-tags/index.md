@@ -1,13 +1,11 @@
 ---
 title: "Social meta tags"
-description: "Generating the image is half the job. The site still has to write the tags, and every site ends up with slightly different results."
+description: "Generating the image is only half the job, since the site still has to write the tags that point at it. Given a manifest, that is a lookup."
 editUrl: "https://github.com/KensioSoftware/colophon/blob/main/docs/configuration/meta-tags/README.md"
 ---
 
-Generating the image is half the job. The site still has to write the tags, and
-every site ends up with slightly different results.
-
-Given [a manifest](../manifest/), that is a lookup:
+Generating the image is only half the job, since the site still has to write the
+tags that point at it. Given [a manifest](../manifest/), that is a lookup:
 
 ```ts
 import { metaTags, metaTagsHtml } from "@kensio/colophon/meta";

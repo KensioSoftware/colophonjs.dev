@@ -13,9 +13,9 @@ Every page below is also available as one file: https://colophonjs.dev/llms-full
 - [The command line](https://colophonjs.dev/cli/): text colophon [contentDir] [options] Render the images for a content tree colophon init [contentDir] Write a starter config module colophon preview <file>...
 - [Templates](https://colophonjs.dev/templates/): A template is a layout. Frontmatter picks one by name, so different posts on the same site can produce different kinds of image from the same config.
 - [The code template](https://colophonjs.dev/code-template/): The code template renders a syntax-highlighted snippet on a rounded panel over the background. The colours come from a real VS Code theme, by way of Shiki.
-- [Astro](https://colophonjs.dev/astro/): Two halves: an integration that renders the images during the build, and a component that emits the tags for the route being rendered.
-- [The browser-safe core](https://colophonjs.dev/core/): buildSvg is string building: props, a config and a size go in, an SVG document comes out.
-- [The layout toolkit](https://colophonjs.dev/layout/): Writing a template means returning a string of SVG.
+- [Astro](https://colophonjs.dev/astro/): There are two halves to this: an integration that renders the images during the build, and a component that emits the tags for the route being rendered.
+- [The browser-safe core](https://colophonjs.dev/core/): buildSvg builds a string: it takes props, a config and a size, and returns an SVG document.
+- [The layout toolkit](https://colophonjs.dev/layout/): Writing a template means returning a string of SVG, which is manageable by hand for a heading and a rectangle, and much less so once the layout has a photo...
 - [Rebuilds](https://colophonjs.dev/rebuilds/): Every image Colophon writes carries a stamp: a hash of the props, the config and the output size it was rendered from, stored inside the image file itself.
 - [Programmatic use](https://colophonjs.dev/programmatic-use/): The CLI is a thin wrapper over two entry points. Use them directly when a project needs to drive generation itself.
 - [Upgrading](https://colophonjs.dev/upgrading/): Text is measured against the fonts a build actually renders with, instead of being estimated from a per-template fudge factor.
@@ -24,17 +24,17 @@ Every page below is also available as one file: https://colophonjs.dev/llms-full
 
 - [Configuration](https://colophonjs.dev/configuration/): Colophon is configured with a module whose default export is a ColophonConfig.
 - [Frontmatter](https://colophonjs.dev/configuration/frontmatter/): By default Colophon reads a meta_img_props object from a post's frontmatter, takes the template name from a template field within it, and reads the post slug...
-- [Fonts](https://colophonjs.dev/configuration/fonts/): By default Colophon names font families and hopes the machine has them.
-- [Themes and background treatments](https://colophonjs.dev/configuration/themes/): A theme is a named look: a palette, a background and, for some of them, a texture over it. It is the shortest config there is.
+- [Fonts](https://colophonjs.dev/configuration/fonts/): By default Colophon names font families and leaves the machine to supply them, which is how the same post can render differently on a laptop and in CI.
+- [Themes and background treatments](https://colophonjs.dev/configuration/themes/): A theme is a named look, made up of a palette, a background and, for some of them, a texture over it. Naming one is the shortest config a project can write.
 - [Rasteriser](https://colophonjs.dev/configuration/rasteriser/): Colophon builds an SVG document per image and then turns it into bytes. That second step is resvg by default, and rasteriser is how you replace it.
 - [Output formats](https://colophonjs.dev/configuration/formats/): Colophon writes PNG unless you say otherwise.
 - [File size](https://colophonjs.dev/configuration/compression/): This page is about PNG, which is what a build writes unless format says otherwise.
-- [Logos, avatars and photographs](https://colophonjs.dev/configuration/images/): Four places an image can go into a generated one: a logo in the corner, an author's photo beside the footer, the post's own photograph, and a picture behind...
+- [Logos, avatars and photographs](https://colophonjs.dev/configuration/images/): There are four places an image can go into a generated one: a logo in the corner, an author's photo beside the footer, the post's own photograph, and a picture...
 - [Output sizes and filenames](https://colophonjs.dev/configuration/sizes/): Each output size is a named { name, width, height }.
 - [Per-size config](https://colophonjs.dev/configuration/per-size-config/): Some settings only make sense per size. code.minFontScale is the clearest case: a 1:1 square and a 1.91:1 landscape have very different amounts of vertical...
-- [Placement](https://colophonjs.dev/configuration/placement/): An output path says where the bytes go and nothing about how anyone reaches them, so every site ends up rebuilding that mapping in its own templates, from...
-- [Manifest](https://colophonjs.dev/configuration/manifest/): Colophon writes PNGs and then goes quiet, so the site works out for itself what was generated, where it lives and how big it is.
-- [Social meta tags](https://colophonjs.dev/configuration/meta-tags/): Generating the image is half the job. The site still has to write the tags, and every site ends up with slightly different results.
+- [Placement](https://colophonjs.dev/configuration/placement/): An output path says where the bytes go and nothing about how anyone reaches them, which leaves a site to rebuild that mapping in its own templates from...
+- [Manifest](https://colophonjs.dev/configuration/manifest/): A build that only writes images leaves the site to work out for itself what was generated, where it lives and how big it is, which usually means globbing for...
+- [Social meta tags](https://colophonjs.dev/configuration/meta-tags/): Generating the image is only half the job, since the site still has to write the tags that point at it.
 - [One-off images](https://colophonjs.dev/configuration/extra-images/): Not every image belongs to a post.
 - [Warnings](https://colophonjs.dev/configuration/warnings/): Some inputs cannot be honoured exactly.
 
