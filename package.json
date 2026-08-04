@@ -24,9 +24,9 @@
     "@codemirror/lint": "^6.9.7",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.7",
-    "@kensio/colophon": "^2.9.0",
+    "@kensio/colophon": "^2.10.0",
     "@lezer/highlight": "^1.2.3",
-    "astro": "^7.0.9",
+    "astro": "^7.1.6",
     "preact": "^10.29.7",
     "sharp": "^0.35.3",
     "yaml": "^2.9.0"
@@ -34,8 +34,8 @@
   "devDependencies": {
     "@kensio/yulin": "^0.41.0",
     "aws-cdk": "^2.1132.1",
-    "aws-cdk-lib": "^2.261.0",
-    "constructs": "^10.7.0",
+    "aws-cdk-lib": "^2.262.2",
+    "constructs": "^10.7.2",
     "prettier": "^3.9.5",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.1",
